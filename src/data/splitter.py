@@ -14,7 +14,11 @@ class Fold:
 
 
 class CadecSplitter:
-    def __init__(self, corpus_dir, train_share, test_share, dev_share=0., name_prefix="", override=False, shuffle=True):
+    def __init__(self, corpus_dir, train_share, test_share,
+                 dev_share=0.,
+                 name_prefix="",
+                 override=False,
+                 shuffle=True):
         '''
             corpus_dir - path to folder containing CADEC corpus. Must contain "original" and "text" folders
             <fold>_share - expected sampling share of a fold
@@ -43,8 +47,10 @@ class CadecSplitter:
         if (any([os.path.exists(self.train_fold.path),
                  os.path.exists(self.test_fold.path),
                  os.path.exists(self.dev_fold.path)])):
+
             # TODO: implement override logic
-            pass
+            raise Exception("Split with specified name prefix already exists. Aborting.")
+            
 
         txt_files_pattern = os.path.join(corpus_dir, 'text', '*.txt')
         ann_files_pattern = os.path.join(corpus_dir, 'original','*.ann')
