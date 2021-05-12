@@ -5,7 +5,7 @@ from shutil import copy2
 
 
 def is_consistent_set(txt_files, ann_files):
-    for txt, ann in zip(sorted(txt_files), sorted(ann_files)):
+    for txt, ann in zip(txt_files, ann_files):
         if txt.split('/')[-1][:-4] != ann.split('/')[-1][:-4]:
             return False
     return True
@@ -36,8 +36,8 @@ def splitter(corpus_dir, train_share, dev_share, test_share=0., debug=False):
     txt_files_pattern = os.path.join(corpus_dir, 'text', '*.txt')
     ann_files_pattern = os.path.join(corpus_dir, 'original','*.ann')
 
-    txt_files = [txt_file for txt_file in glob(txt_files_pattern)]
-    ann_files = [ann_file for ann_file in glob(ann_files_pattern)]
+    txt_files = sorted([txt_file for txt_file in glob(txt_files_pattern)])
+    ann_files = sorted([ann_file for ann_file in glob(ann_files_pattern)])
 
     # TODO: check consistency - we need only matched pairs of files
     if not is_consistent_set(txt_files, ann_files):
@@ -45,8 +45,8 @@ def splitter(corpus_dir, train_share, dev_share, test_share=0., debug=False):
 
 
     # Now everything is consistent
-    txt_files = np.sort(txt_files)
-    ann_files = np.sort(ann_files)
+    txt_files = np.array(txt_files)
+    ann_files = np.array(ann_files)
 
     idx = np.arange(txt_files.shape[0])
     np.random.shuffle(idx)
