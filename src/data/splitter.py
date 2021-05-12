@@ -30,14 +30,15 @@ class CadecSplitter:
         self.name_prefix = name_prefix
         self.override = override
         self.split_successful = False
+        self.shuffle = shuffle
 
 
-    def split():
+    def split(self):
 
         # todo: check split for existence
-        self.train_fold.path = os.path.join(corpus_dir, name_prefix+"_train")
-        self.test_fold.path = os.path.join(corpus_dir, name_prefix+"_test")
-        self.dev_fold.path = os.path.join(corpus_dir, name_prefix+"_dev")
+        self.train_fold.path = os.path.join(corpus_dir, self.name_prefix+"_train")
+        self.test_fold.path = os.path.join(corpus_dir, self.name_prefix+"_test")
+        self.dev_fold.path = os.path.join(corpus_dir, self.name_prefix+"_dev")
 
         if (any([os.path.exists(self.train_fold.path),
                  os.path.exists(self.test_fold.path),
@@ -55,18 +56,19 @@ class CadecSplitter:
             # TODO: find consistent pairs and use them
             raise Exception("found mismatched pairs of txt/ann files.")
 
-        self.idx = np.arange(txt_files.shape[0])
+        self.txt_files = np.array(self.txt_files)
+        self.ann_files = np.array(self.ann_files)
+
+        self.idx = np.arange(self.txt_files.shape[0])
         if self.shuffle:
             np.random.shuffle(self.idx)
 
-        train_size = make_fold(self.train_fold, 0)
-        test_size = make_fold(self.test_fold, train_size)
-        make_fold(self.dev_fold, train_size + test_size)
+        train_size = self.make_fold(self.train_fold, 0)
+        test_size = self.make_fold(self.test_fold, train_size)
+        self.make_fold(self.dev_fold, train_size + test_size)
 
         self.split_successful = True
         print("Split successful.")
-
-        return train_len, dev_len, test_len
 
 
     def is_consistent_set(self):
@@ -87,7 +89,7 @@ class CadecSplitter:
             copy2(txt_file, fold.path)
             copy2(ann_file, fold.path)
 
-        self.fold.size = fold_len
+        fold.size = fold_len
 
         return fold_len
 
