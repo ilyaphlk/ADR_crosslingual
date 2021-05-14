@@ -17,13 +17,13 @@ class CadecSplitter:
     def __init__(self, corpus_dir, train_share, test_share,
                  dev_share=0.,
                  out_dir=None,
-                 name_prefix="",
+                 name_postfix="",
                  override=False,
                  shuffle=True):
         '''
             corpus_dir - path to folder containing CADEC corpus. Must contain "original" and "text" folders
             <fold>_share - expected sampling share of a fold
-            name_prefix - prefix for naming resulting folds directories
+            name_postfix - postfix for naming resulting folds directories
             override - whether or not to rewrite the existing split
         '''
         self.corpus_dir = corpus_dir
@@ -36,7 +36,7 @@ class CadecSplitter:
             out_dir = corpus_dir
         self.out_dir = out_dir
         
-        self.name_prefix = name_prefix
+        self.name_postfix = name_postfix
         self.override = override
         self.split_successful = False
         self.shuffle = shuffle
@@ -45,9 +45,9 @@ class CadecSplitter:
     def split(self):
 
         # todo: check split for existence
-        self.train_fold.path = os.path.join(self.out_dir, self.name_prefix+"_train")
-        self.test_fold.path = os.path.join(self.out_dir, self.name_prefix+"_test")
-        self.dev_fold.path = os.path.join(self.out_dir, self.name_prefix+"_dev")
+        self.train_fold.path = os.path.join(self.out_dir, "train"+self.name_postfix)
+        self.test_fold.path = os.path.join(self.out_dir, "test"+self.name_postfix)
+        self.dev_fold.path = os.path.join(self.out_dir, "dev"+self.name_postfix)
 
         if (any([os.path.exists(self.train_fold.path),
                  os.path.exists(self.test_fold.path),
