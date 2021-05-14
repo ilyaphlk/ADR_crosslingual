@@ -1,77 +1,66 @@
 import os
 from glob import glob
-import re
 import sys
 import torch
-import torch.optim as optim
-import pandas as pd
-import numpy as np
-from operator import itemgetter, attrgetter
 from NLPDatasetIO.dataset import Dataset
 
 
-
 class CADECDataset(torch.utils.data.Dataset):
-    def __init__(self, corpus_dir, split=None):
+    def __init__(self, fold_path, fold_type, tokenizer, kwargsDataset={}, to_sentences=False):
         '''
-          corpus_dir: path, must contain corresponding .txt and .ann files
-          split: 'train', 'dev' or 'test'
+          fold_path: path to fold folder, must contain corresponding .txt and .ann files
+          fold_type: 'train', 'dev' or 'test'
+          tokenizer: tokenizer to with dataset
+          kwargsDataset: dict with options for NLPDatasetIO.Dataset
+          to_sentences: whether to split each document into sentences
         '''
-        if split is None:  # infer from path
-            split = corpus_dir.split('/')[-1]
-        self.split = split
+        self.fold_type = fold_type
+        self.fold_path = fold_path
 
-        self.documents = Dataset(location=corpus_dir, format='brat', split=self.split).documents
+        self.documents = Dataset(location=fold_path, format='brat', split=fold_type,
+                                 tokenize=tokenizer.tokenize, **kwargsDataset).documents
+
+        if to_sentences:
+            sentences = []
+            for doc in self.documents:
+                sentences.extend(doc.sentences)
+            self.documents = sentences
+
+        self.labels = [doc.token_labels for doc in self.documents]
+
+        label_set = set(['UNK'])
+        for token_labels in self.labels:
+            label_set = label_set | set(token_labels)
+
+        self.label2int = {'UNK': 0}
+        for idx, label in enumerate(label_set, 1):
+            self.label2int[label] = idx
+
+        self.tokenizer = tokenizer
 
 
     def __len__(self):
+
         return len(self.documents)
 
 
     def __getitem__(self, idx):
+
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
         document = self.documents[idx]
+        encoded_text = self.tokenizer.encode_plus(document.text)
+        labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
+                          self.labels[idx]))
+
+        item = {key: torch.tensor(val) for key, val in encoded_text.items()}
+        item['labels'] = torch.tensor(labels)
+
+        return item
 
 
-        'input_ids'      #
-        'token_type_ids' #all ones
-        'attention_mask' #zero for padding tokens
-        '''
-            item = {key: torch.tensor(val) for key, val in self.encoded_texts[idx].items()}
-            item['labels'] = torch.tensor(self.labels[idx])
-            return item
-        '''
-
-
-class CadecDataset(Dataset):
-
-
-
-
-
-    def __init__(self, corpus_dir):
-        raise NotImplementedError
-
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(index):
-            index = index.tolist(index)
-
-        raise NotImplementedError
-
-
-    def __len__(self):
-
-        raise NotImplementedError
-
-
-
-
-
-
-class PsytarDataset(Dataset):
+class PsytarDataset(torch.utils.data.Dataset):
     def __init__(self, corpus_dir):
         raise NotImplementedError
 
