@@ -17,6 +17,7 @@ class CadecSplitter:
     def __init__(self, corpus_dir, train_share, test_share,
                  dev_share=0.,
                  out_dir=None,
+                 random_state=None,
                  name_postfix="",
                  override=False,
                  shuffle=True):
@@ -36,6 +37,7 @@ class CadecSplitter:
             out_dir = corpus_dir
         self.out_dir = out_dir
         
+        self.random_state = random_state
         self.name_postfix = name_postfix
         self.override = override
         self.split_successful = False
@@ -71,6 +73,10 @@ class CadecSplitter:
         self.ann_files = np.array(self.ann_files)
 
         self.idx = np.arange(self.txt_files.shape[0])
+
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+
         if self.shuffle:
             np.random.shuffle(self.idx)
 

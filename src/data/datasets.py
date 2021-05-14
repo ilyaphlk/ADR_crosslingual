@@ -5,8 +5,9 @@ import torch
 from NLPDatasetIO.dataset import Dataset
 
 
-class CADECDataset(torch.utils.data.Dataset):
-    def __init__(self, fold_path, fold_type, tokenizer, kwargsDataset={}, to_sentences=False):
+class CadecDataset(torch.utils.data.Dataset):
+    def __init__(self, fold_path, fold_type, tokenizer, kwargsDataset={},
+                 to_sentences=False, random_state=None, shuffle=False):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files
           fold_type: 'train', 'dev' or 'test'
@@ -26,8 +27,17 @@ class CADECDataset(torch.utils.data.Dataset):
                 sentences.extend(doc.sentences)
             self.documents = sentences
 
+        self.random_state = random_state
+        if random_state is not None:
+            np.random.seed(random_state)
+
+        self.shuffle = shuffle
+        if shuffle:
+            np.random.shuffle(self.documents)
+
         self.labels = [doc.token_labels for doc in self.documents]
 
+        # TODO make unified label_set for all folds
         label_set = set(['UNK'])
         for token_labels in self.labels:
             label_set = label_set | set(token_labels)
@@ -35,6 +45,8 @@ class CADECDataset(torch.utils.data.Dataset):
         self.label2int = {'UNK': 0}
         for idx, label in enumerate(label_set, 1):
             self.label2int[label] = idx
+
+        self.int2label = {val: key for key, val in self.label2int}
 
         self.tokenizer = tokenizer
 
