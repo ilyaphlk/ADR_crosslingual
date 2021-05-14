@@ -6,7 +6,7 @@ from NLPDatasetIO.dataset import Dataset
 
 
 class CadecDataset(torch.utils.data.Dataset):
-    def __init__(self, fold_path, fold_type, tokenizer, kwargsDataset={},
+    def __init__(self, fold_path, fold_type, tokenizer, label2int=None, kwargsDataset={},
                  to_sentences=False, random_state=None, shuffle=False):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files
@@ -15,6 +15,10 @@ class CadecDataset(torch.utils.data.Dataset):
           kwargsDataset: dict with options for NLPDatasetIO.Dataset
           to_sentences: whether to split each document into sentences
         '''
+        assert fold_type == 'train' or fold_type == 'test' or fold_type == 'dev'
+        if fold_type != 'train':
+            assert label2int is not None
+
         self.fold_type = fold_type
         self.fold_path = fold_path
 
@@ -37,15 +41,17 @@ class CadecDataset(torch.utils.data.Dataset):
 
         self.labels = [doc.token_labels for doc in self.documents]
 
-        # TODO make unified label_set for all folds
-        label_set = set(['UNK'])
+        self.label_set = set(['UNK'])
         for token_labels in self.labels:
-            label_set = label_set | set(token_labels)
+            self.label_set = self.label_set | set(token_labels)
 
-        self.label2int = {'UNK': 0}
-        for idx, label in enumerate(label_set, 1):
-            self.label2int[label] = idx
-
+        if self.fold_type == 'train':  # learn labels
+            self.label2int = {'UNK': 0}
+            for idx, label in enumerate(sorted(label_set_union), 1):
+                self.label2int[label] = idx
+        else:  # set labels from train
+            self.label2int = label2int
+        
         self.int2label = {val: key for key, val in self.label2int}
 
         self.tokenizer = tokenizer
@@ -63,6 +69,7 @@ class CadecDataset(torch.utils.data.Dataset):
 
         document = self.documents[idx]
         encoded_text = self.tokenizer.encode_plus(document.text)
+
         labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
                           self.labels[idx]))
 
