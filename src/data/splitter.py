@@ -54,7 +54,7 @@ class CadecSplitter:
                  os.path.exists(self.dev_fold.path)])):
 
             # TODO: implement override logic
-            raise Exception("Split with specified name prefix already exists. Aborting.")
+            raise Exception("Split with specified name postfix already exists. Aborting.")
             
 
         txt_files_pattern = os.path.join(self.corpus_dir, 'text', '*.txt')
