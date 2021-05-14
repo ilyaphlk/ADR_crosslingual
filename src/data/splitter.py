@@ -16,6 +16,7 @@ class Fold:
 class CadecSplitter:
     def __init__(self, corpus_dir, train_share, test_share,
                  dev_share=0.,
+                 out_dir=None,
                  name_prefix="",
                  override=False,
                  shuffle=True):
@@ -31,6 +32,10 @@ class CadecSplitter:
         self.test_fold = Fold(share=test_share)
         self.dev_fold = Fold(share=dev_share)
 
+        if out_dir is None:
+            out_dir = corpus_dir
+        self.out_dir = out_dir
+        
         self.name_prefix = name_prefix
         self.override = override
         self.split_successful = False
@@ -40,9 +45,9 @@ class CadecSplitter:
     def split(self):
 
         # todo: check split for existence
-        self.train_fold.path = os.path.join(corpus_dir, self.name_prefix+"_train")
-        self.test_fold.path = os.path.join(corpus_dir, self.name_prefix+"_test")
-        self.dev_fold.path = os.path.join(corpus_dir, self.name_prefix+"_dev")
+        self.train_fold.path = os.path.join(self.out_dir, self.name_prefix+"_train")
+        self.test_fold.path = os.path.join(self.out_dir, self.name_prefix+"_test")
+        self.dev_fold.path = os.path.join(self.out_dir, self.name_prefix+"_dev")
 
         if (any([os.path.exists(self.train_fold.path),
                  os.path.exists(self.test_fold.path),
@@ -52,8 +57,8 @@ class CadecSplitter:
             raise Exception("Split with specified name prefix already exists. Aborting.")
             
 
-        txt_files_pattern = os.path.join(corpus_dir, 'text', '*.txt')
-        ann_files_pattern = os.path.join(corpus_dir, 'original','*.ann')
+        txt_files_pattern = os.path.join(self.corpus_dir, 'text', '*.txt')
+        ann_files_pattern = os.path.join(self.corpus_dir, 'original','*.ann')
 
         self.txt_files = sorted([txt_file for txt_file in glob(txt_files_pattern)])
         self.ann_files = sorted([ann_file for ann_file in glob(ann_files_pattern)])
