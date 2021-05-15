@@ -20,7 +20,7 @@ class CadecSplitter:
                  random_state=None,
                  name_postfix="",
                  override=False,
-                 shuffle=True):
+                 shuffle=False):
         '''
             corpus_dir - path to folder containing CADEC corpus. Must contain "original" and "text" folders
             <fold>_share - expected sampling share of a fold
