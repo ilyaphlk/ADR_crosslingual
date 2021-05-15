@@ -47,12 +47,12 @@ class CadecDataset(torch.utils.data.Dataset):
 
         if self.fold_type == 'train':  # learn labels
             self.label2int = {'UNK': 0}
-            for idx, label in enumerate(sorted(label_set_union), 1):
+            for idx, label in enumerate(sorted(self.label_set - set(['UNK'])), 1):
                 self.label2int[label] = idx
         else:  # set labels from train
             self.label2int = label2int
-        
-        self.int2label = {val: key for key, val in self.label2int}
+
+        self.int2label = {val: key for key, val in self.label2int.items()}
 
         self.tokenizer = tokenizer
 
