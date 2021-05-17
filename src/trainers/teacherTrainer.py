@@ -1,4 +1,6 @@
-def train_teacher(logging_interval=10):
+from torch.utils.tensorboard import SummaryWriter
+
+def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
     '''
     one epoch of training
     '''
@@ -21,13 +23,17 @@ def train_teacher(logging_interval=10):
         loss = result.loss
         total_train_loss += loss.item()
         loss.backward()
+
         #torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
         optimizer.step()
 
     avg_train_loss = total_train_loss / len(dataloader)            
-    
     training_time = format_time(time.time() - t0)
+
+    if tensorboard_writer is not None:
+        tensorboard_writer.add_scalar('avg loss (train)', avg_train_loss, cur_epoch)
+        tensorboard_writer.add_scalar('time per epoch', training_time, cur_epoch)
 
     print("")
     print("  Average training loss: {0:.4f}".format(avg_train_loss))
