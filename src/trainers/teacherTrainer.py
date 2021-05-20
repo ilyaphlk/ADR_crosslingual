@@ -17,6 +17,8 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
+        for key, t in batch.items():
+            batch[key] = t.to(device) 
         model.zero_grad()        
         result = model(**batch)
 
@@ -33,7 +35,7 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
 
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss (train)', avg_train_loss, cur_epoch)
-        tensorboard_writer.add_scalar('time per epoch (train)', training_time, cur_epoch)
+        #tensorboard_writer.add_scalar('time per epoch (train)', training_time, cur_epoch)
 
     print("")
     print("  Average training loss: {0:.4f}".format(avg_train_loss))
@@ -51,7 +53,7 @@ def eval_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
 
     dataloader = test_dataloader
     for batch in dataloader:        
-        with torch.no_grad():        
+        with torch.no_grad():
             result = model(**batch)
 
         loss = result.loss
