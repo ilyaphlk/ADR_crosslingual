@@ -56,6 +56,8 @@ class CadecDataset(torch.utils.data.Dataset):
 
         self.tokenizer = tokenizer
 
+        self.num_labels = len(self.int2label)
+
 
     def __len__(self):
 
@@ -68,10 +70,11 @@ class CadecDataset(torch.utils.data.Dataset):
             idx = idx.tolist()
 
         document = self.documents[idx]
-        encoded_text = self.tokenizer.encode_plus(document.text)
+        encoded_text = self.tokenizer.encode_plus(document.text, max_length=512)
+        encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
+                          self.labels[idx][:len(encoded_text['input_ids'])-2]))
 
-        labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
-                          self.labels[idx]))
+        labels = [self.label2int['UNK']] + encoded_labels + [self.label2int['UNK']]
 
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
         item['labels'] = torch.tensor(labels)
