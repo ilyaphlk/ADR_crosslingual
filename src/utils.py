@@ -39,3 +39,11 @@ def set_seed(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+
+def unpack(list_of_batches):
+    unpacked = []
+    for batch in list_of_batches:
+        for row in batch.tolist():
+            unpacked.append(row)
+    return unpacked
