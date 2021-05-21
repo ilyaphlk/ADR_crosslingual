@@ -41,9 +41,9 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)
 
 
-def unpack(list_of_batches):
+def unpack(batches, original_lens_batches):
     unpacked = []
-    for batch in list_of_batches:
-        for row in batch.tolist():
-            unpacked.append(row)
+    for batch, original_lens in zip(batches, original_lens_batches):
+        for row, len in zip(batch.tolist(), original_lens):
+            unpacked.append(row[:len])
     return unpacked
