@@ -11,6 +11,11 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
 
     model.train()
     dataloader = train_dataloader
+
+    original_lens_batches = []
+    labels_batches = []
+    preds_batches = []
+
     for step, batch in enumerate(dataloader, 1):
 
         if step % logging_interval == 0 and not step == 0:
@@ -18,7 +23,10 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
         for key, t in batch.items():
-            batch[key] = t.to(device) 
+            batch[key] = t.to(device)
+
+        original_lens_batches.append(batch.pop('original_lens', None))
+        
         model.zero_grad()        
         result = model(**batch)
 
@@ -26,6 +34,8 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
         total_train_loss += loss.item()
         loss.backward()
 
+        preds_batches.append(result.logits.max(-1).indices)
+        labels_batches.append(batch['labels'])
         #torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
         optimizer.step()
@@ -36,6 +46,10 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss (train)', avg_train_loss, cur_epoch)
         #tensorboard_writer.add_scalar('time per epoch (train)', training_time, cur_epoch)
+
+        metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
+        for metric_name, metric_value in metrics.items():
+            tensorboard_writer.add_scalar(metric_name+" (train)", metric_value, cur_epoch)
 
     print("")
     print("  Average training loss: {0:.4f}".format(avg_train_loss))
