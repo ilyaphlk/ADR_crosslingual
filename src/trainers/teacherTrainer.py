@@ -58,8 +58,7 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
     return avg_train_loss, training_time
 
 
-def eval_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None,
-                 compute_metrics=(lambda y_true, y_pred:{})):
+def eval_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
 
     t0 = time.time()
     model.eval()
@@ -67,14 +66,24 @@ def eval_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None,
     total_eval_loss = 0
 
     dataloader = test_dataloader
+
+    original_lens_batches = []
+    labels_batches = []
+    preds_batches = []
+
     for batch in dataloader:
         for key, t in batch.items():
             batch[key] = t.to(device) 
+        original_lens_batches.append(batch.pop('original_lens', None))
+
         with torch.no_grad():
             result = model(**batch)
 
         loss = result.loss
         total_eval_loss += loss.item()
+
+        preds_batches.append(result.logits.max(-1).indices)
+        labels_batches.append(batch['labels'])
 
     avg_val_loss = total_eval_loss / len(dataloader)
     validation_time = format_time(time.time() - t0)
@@ -83,11 +92,11 @@ def eval_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None,
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss (test)', avg_val_loss, cur_epoch)
         #tensorboard_writer.add_scalar('time per epoch (test)', validation_time, cur_epoch)
-        '''
-        metrics = compute_metrics(_)
+        
+        metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
         for metric_name, metric_value in metrics.items():
-            tensorboard_writer.add_scalar(metric_name, metric_value, cur_epoch)
-        '''
+            tensorboard_writer.add_scalar(metric_name+" (test)", metric_value, cur_epoch)
+        
     
     print("  Test Loss: {0:.4f}".format(avg_val_loss))
     print("  Validation took: {:}".format(validation_time))
