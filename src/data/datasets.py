@@ -5,13 +5,13 @@ import torch
 from NLPDatasetIO.dataset import Dataset
 
 
-class CadecDataset(torch.utils.data.Dataset):
+class BratDataset(torch.utils.data.Dataset):
     def __init__(self, fold_path, fold_type, tokenizer, label2int=None, kwargsDataset={},
                  to_sentences=False, random_state=None, shuffle=False):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files
           fold_type: 'train', 'dev' or 'test'
-          tokenizer: tokenizer to with dataset
+          tokenizer: tokenizer to use with dataset
           kwargsDataset: dict with options for NLPDatasetIO.Dataset
           to_sentences: whether to split each document into sentences
         '''
