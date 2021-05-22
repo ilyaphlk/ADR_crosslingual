@@ -13,30 +13,28 @@ class Fold:
     size: int = None
 
 
-class CadecSplitter:
-    def __init__(self, corpus_dir, train_share, test_share,
+class BratSplitter:
+    def __init__(self, texts_dir, annotations_dir, out_dir, train_share, test_share,
                  dev_share=0.,
-                 out_dir=None,
                  random_state=None,
                  name_postfix="",
                  override=False,
                  shuffle=False):
         '''
-            corpus_dir - path to folder containing CADEC corpus. Must contain "original" and "text" folders
+            texts_dir - path to folder containing *.txt files
+            annotations_dir - path to folder containing *.ann files
             <fold>_share - expected sampling share of a fold
             name_postfix - postfix for naming resulting folds directories
             override - whether or not to rewrite the existing split
         '''
-        self.corpus_dir = corpus_dir
+        self.texts_dir = texts_dir
+        self.annotations_dir = annotations_dir
+        self.out_dir = out_dir
 
         self.train_fold = Fold(share=train_share)
         self.test_fold = Fold(share=test_share)
         self.dev_fold = Fold(share=dev_share)
 
-        if out_dir is None:
-            out_dir = corpus_dir
-        self.out_dir = out_dir
-        
         self.random_state = random_state
         self.name_postfix = name_postfix
         self.override = override
@@ -59,15 +57,15 @@ class CadecSplitter:
             raise Exception("Split with specified name postfix already exists. Aborting.")
             
 
-        txt_files_pattern = os.path.join(self.corpus_dir, 'text', '*.txt')
-        ann_files_pattern = os.path.join(self.corpus_dir, 'original','*.ann')
+        txt_files_pattern = os.path.join(self.texts_dir, '*.txt')
+        ann_files_pattern = os.path.join(self.annotations_dir,'*.ann')
 
         self.txt_files = sorted([txt_file for txt_file in glob(txt_files_pattern)])
         self.ann_files = sorted([ann_file for ann_file in glob(ann_files_pattern)])
         
         if not self.is_consistent_set():
             # TODO: find consistent pairs and use them
-            raise Exception("found mismatched pairs of txt/ann files.")
+            raise Exception("Found mismatched pairs of txt/ann files. Aborting")
 
         self.txt_files = np.array(self.txt_files)
         self.ann_files = np.array(self.ann_files)
@@ -116,7 +114,7 @@ if __name__ == "__main__":
     try:
         corpus_dir = sys.argv[1]
     except:
-        raise Exception("dir with CADEC corpus not specified. Aborting.")
+        raise Exception("dir with brat-format corpus not specified. Aborting.")
 
     splitter = CadecSplitter(corpus_dir, 0.01, 0.005, 0.005)
     splitter.split()
