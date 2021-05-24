@@ -3,6 +3,11 @@ from torch.utils.tensorboard import SummaryWriter
 def train(model, dataloader, cur_epoch, teacher_model=None, sampler=None, logging_interval=10, tensorboard_writer=None):
     '''
     one epoch of training
+    model - model to train
+    dataloader - dataloader object, from which to get batches
+    cur_epoch - needed for logging
+    teacher_model - if not None, then use output logits of this model as targets
+    sampler - if not None, use batch sampling to get best samples from batch via teacher model
     '''
 
     t0 = time.time()
@@ -24,7 +29,9 @@ def train(model, dataloader, cur_epoch, teacher_model=None, sampler=None, loggin
         for key, t in batch.items():
             batch[key] = t.to(device)
 
-        if teacher_model is not None:
+        if sampler is not None:
+            batch = sampler(batch, teacher_model)
+        elif teacher_model is not None:
             batch['teacher_logits'] = teacher_model(**batch).logits.to(device)
 
         original_lens_batches.append(batch.pop('original_lens', None))
