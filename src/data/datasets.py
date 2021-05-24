@@ -16,7 +16,7 @@ class BratDataset(torch.utils.data.Dataset):
           to_sentences: whether to split each document into sentences
         '''
         assert fold_type == 'train' or fold_type == 'test' or fold_type == 'dev'
-        if fold_type != 'train':
+        if fold_type != 'train' and labeled:
             assert label2int is not None
 
         self.fold_type = fold_type
