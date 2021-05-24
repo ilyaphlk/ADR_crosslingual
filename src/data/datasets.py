@@ -6,7 +6,7 @@ from NLPDatasetIO.dataset import Dataset
 
 
 class BratDataset(torch.utils.data.Dataset):
-    def __init__(self, fold_path, fold_type, tokenizer, label2int=None, kwargsDataset={},
+    def __init__(self, fold_path, fold_type, tokenizer, labeled=True, label2int=None, kwargsDataset={'format':'brat'},
                  to_sentences=False, random_state=None, shuffle=False):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files
@@ -22,7 +22,7 @@ class BratDataset(torch.utils.data.Dataset):
         self.fold_type = fold_type
         self.fold_path = fold_path
 
-        self.documents = Dataset(location=fold_path, format='brat', split=fold_type,
+        self.documents = Dataset(location=fold_path, split=fold_type,
                                  tokenize=tokenizer.tokenize, **kwargsDataset).documents
 
         if to_sentences:
@@ -39,24 +39,27 @@ class BratDataset(torch.utils.data.Dataset):
         if shuffle:
             np.random.shuffle(self.documents)
 
-        self.labels = [doc.token_labels for doc in self.documents]
-
-        self.label_set = set(['UNK'])
-        for token_labels in self.labels:
-            self.label_set = self.label_set | set(token_labels)
-
-        if self.fold_type == 'train':  # learn labels
-            self.label2int = {'UNK': 0}
-            for idx, label in enumerate(sorted(self.label_set - set(['UNK'])), 1):
-                self.label2int[label] = idx
-        else:  # set labels from train
-            self.label2int = label2int
-
-        self.int2label = {val: key for key, val in self.label2int.items()}
-
         self.tokenizer = tokenizer
+        self.labeled = labeled
 
-        self.num_labels = len(self.int2label)
+        if self.labeled:
+
+            self.labels = [doc.token_labels for doc in self.documents]
+
+            self.label_set = set(['UNK'])
+            for token_labels in self.labels:
+                self.label_set = self.label_set | set(token_labels)
+
+            if label2int is None:  # learn labels
+                self.label2int = {'UNK': 0}
+                for idx, label in enumerate(sorted(self.label_set - set(['UNK'])), 1):
+                    self.label2int[label] = idx
+            else:  # set labels from other fold
+                self.label2int = label2int
+
+            self.int2label = {val: key for key, val in self.label2int.items()}
+
+            self.num_labels = len(self.int2label)
 
 
     def __len__(self):
@@ -71,13 +74,13 @@ class BratDataset(torch.utils.data.Dataset):
 
         document = self.documents[idx]
         encoded_text = self.tokenizer.encode_plus(document.text, max_length=512)
-        encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
-                          self.labels[idx][:len(encoded_text['input_ids'])-2]))
-
-        labels = [self.label2int['UNK']] + encoded_labels + [self.label2int['UNK']]
-
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
-        item['labels'] = torch.tensor(labels)
+
+        if self.labeled:
+            labels = [self.label2int['UNK']] + encoded_labels + [self.label2int['UNK']]
+            encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
+                              self.labels[idx][:len(encoded_text['input_ids'])-2]))
+            item['labels'] = torch.tensor(labels)
 
         return item
 
