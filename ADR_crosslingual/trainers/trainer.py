@@ -2,7 +2,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 def train(model, dataloader, cur_epoch,
           teacher_model=None, sampler=None,
-          logging_interval=10, tensorboard_writer=None, print_progress=True):
+          logging_interval=10, tensorboard_writer=None, tb_postfix=" (train)", print_progress=True):
     '''
     one epoch of training
     model - model to train
@@ -57,13 +57,13 @@ def train(model, dataloader, cur_epoch,
     training_time = format_time(time.time() - t0)
 
     if tensorboard_writer is not None:
-        tensorboard_writer.add_scalar('avg loss (train)', avg_train_loss, cur_epoch)
+        tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
         #tensorboard_writer.add_scalar('time per epoch (train)', training_time, cur_epoch)
 
         metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
         #for metric_name, metric_value in metrics.items():
         #    tensorboard_writer.add_scalar(metric_name+" (train)", metric_value, cur_epoch)
-        tensorboard_writer.add_scalars("metrics (train)", metrics, cur_epoch)
+        tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
 
     if print_progress:
         print("")
@@ -74,7 +74,7 @@ def train(model, dataloader, cur_epoch,
 
 
 def eval(model, dataloader, cur_epoch,
-         logging_interval=10, tensorboard_writer=None, print_progress=True):
+         logging_interval=10, tensorboard_writer=None, tb_postfix=" (test)", print_progress=True):
 
     t0 = time.time()
     model.eval()
@@ -104,13 +104,13 @@ def eval(model, dataloader, cur_epoch,
 
 
     if tensorboard_writer is not None:
-        tensorboard_writer.add_scalar('avg loss (test)', avg_val_loss, cur_epoch)
+        tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_val_loss, cur_epoch)
         #tensorboard_writer.add_scalar('time per epoch (test)', validation_time, cur_epoch)
         
         metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
         #for metric_name, metric_value in metrics.items():
         #    tensorboard_writer.add_scalar(metric_name+" (test)", metric_value, cur_epoch)
-        tensorboard_writer.add_scalars("metrics (train)", metrics, cur_epoch)
+        tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
         
     if print_progress:
         print("  Test Loss: {0:.4f}".format(avg_val_loss))
