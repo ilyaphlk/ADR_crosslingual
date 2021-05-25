@@ -1,6 +1,8 @@
 import time
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from ADR_crosslingual.utils import format_time
+
 
 def train(model, dataloader, cur_epoch, device, optimizer,
           teacher_model=None, sampler=None,
@@ -119,4 +121,3 @@ def eval(model, dataloader, cur_epoch, device,
         print("  Validation took: {:}".format(validation_time))
 
     return avg_val_loss, validation_time
-
