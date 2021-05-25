@@ -81,7 +81,7 @@ class ExperimentConfig:
     
     def get_tb_info(self):
         return "_".join([
-                        "arch="+base_model_type,
-                        "lr="+str(learning_rate),
-                        "n_few_shot="+n_few_shot,
+                        "arch="+self.base_model_type,
+                        "lr="+str(self.learning_rate),
+                        "n_few_shot="+self.n_few_shot,
                 ])
