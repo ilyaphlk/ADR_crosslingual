@@ -47,8 +47,8 @@ def set_seed(seed=42):
 def unpack(batches, original_lens_batches):
     unpacked = []
     for batch, original_lens in zip(batches, original_lens_batches):
-        for row, len in zip(batch.tolist(), original_lens):
-            unpacked.append(row[:len])
+        for row, length in zip(batch.tolist(), original_lens.tolist()):
+            unpacked.append(row[:length])
     return unpacked
 
 
