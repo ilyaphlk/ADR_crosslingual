@@ -79,7 +79,7 @@ class ExperimentConfig:
     n_few_shot_samples: int = 0
     seed: int = None
     
-    def get_tb_info():
+    def get_tb_info(self):
         return "_".join([
                         "arch="+base_model_type,
                         "lr="+str(learning_rate),
