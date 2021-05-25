@@ -2,7 +2,7 @@ import time
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-def train(model, dataloader, cur_epoch, device,
+def train(model, dataloader, cur_epoch, device, optimizer,
           teacher_model=None, sampler=None,
           logging_interval=10, tensorboard_writer=None, tb_postfix=" (train)", print_progress=True):
     '''
