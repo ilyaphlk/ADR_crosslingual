@@ -1,6 +1,6 @@
-import setuptools
+from setuptools import setup, find_packages
 
-setuptools.setup(
+setup(
     name="ADR_crosslingual",
     version="0.0.1",
     author="Ilya Pakhalko",
@@ -12,6 +12,7 @@ setuptools.setup(
     project_urls={
         "Bug Tracker": 'https://github.com/ilyaphlk/ADR_crosslingual/issues',
     },
+    packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
