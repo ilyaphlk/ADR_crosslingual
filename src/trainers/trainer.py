@@ -1,6 +1,8 @@
 from torch.utils.tensorboard import SummaryWriter
 
-def train(model, dataloader, cur_epoch, teacher_model=None, sampler=None, logging_interval=10, tensorboard_writer=None):
+def train(model, dataloader, cur_epoch,
+          teacher_model=None, sampler=None,
+          logging_interval=10, tensorboard_writer=None, print_progress=True):
     '''
     one epoch of training
     model - model to train
@@ -22,17 +24,17 @@ def train(model, dataloader, cur_epoch, teacher_model=None, sampler=None, loggin
 
     for step, batch in enumerate(dataloader, 1):
 
-        if step % logging_interval == 0 and not step == 0:
+        if print_progress and step % logging_interval == 0 and not step == 0:
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
-        for key, t in batch.items():
-            batch[key] = t.to(device)
-
         if sampler is not None:
-            batch = sampler(batch, teacher_model)
+            batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
         elif teacher_model is not None:
             batch['teacher_logits'] = teacher_model(**batch).logits.to(device)
+
+        for key, t in batch.items():
+            batch[key] = t.to(device)
 
         original_lens_batches.append(batch.pop('original_lens', None))
         
@@ -59,17 +61,20 @@ def train(model, dataloader, cur_epoch, teacher_model=None, sampler=None, loggin
         #tensorboard_writer.add_scalar('time per epoch (train)', training_time, cur_epoch)
 
         metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
-        for metric_name, metric_value in metrics.items():
-            tensorboard_writer.add_scalar(metric_name+" (train)", metric_value, cur_epoch)
+        #for metric_name, metric_value in metrics.items():
+        #    tensorboard_writer.add_scalar(metric_name+" (train)", metric_value, cur_epoch)
+        tensorboard_writer.add_scalars("metrics (train)", metrics, cur_epoch)
 
-    print("")
-    print("  Average training loss: {0:.4f}".format(avg_train_loss))
-    print("  Training epoch took: {:}".format(training_time))
+    if print_progress:
+        print("")
+        print("  Average training loss: {0:.4f}".format(avg_train_loss))
+        print("  Training epoch took: {:}".format(training_time))
 
     return avg_train_loss, training_time
 
 
-def eval(model, dataloader, cur_epoch, logging_interval=10, tensorboard_writer=None):
+def eval(model, dataloader, cur_epoch,
+         logging_interval=10, tensorboard_writer=None, print_progress=True):
 
     t0 = time.time()
     model.eval()
@@ -103,12 +108,13 @@ def eval(model, dataloader, cur_epoch, logging_interval=10, tensorboard_writer=N
         #tensorboard_writer.add_scalar('time per epoch (test)', validation_time, cur_epoch)
         
         metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
-        for metric_name, metric_value in metrics.items():
-            tensorboard_writer.add_scalar(metric_name+" (test)", metric_value, cur_epoch)
+        #for metric_name, metric_value in metrics.items():
+        #    tensorboard_writer.add_scalar(metric_name+" (test)", metric_value, cur_epoch)
+        tensorboard_writer.add_scalars("metrics (train)", metrics, cur_epoch)
         
-    
-    print("  Test Loss: {0:.4f}".format(avg_val_loss))
-    print("  Validation took: {:}".format(validation_time))
+    if print_progress:
+        print("  Test Loss: {0:.4f}".format(avg_val_loss))
+        print("  Validation took: {:}".format(validation_time))
 
     return avg_val_loss, validation_time
 
