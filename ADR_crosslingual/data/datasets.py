@@ -43,23 +43,25 @@ class BratDataset(torch.utils.data.Dataset):
         self.labeled = labeled
 
         if self.labeled:
-
             self.labels = [doc.token_labels for doc in self.documents]
+            self.set_label_info(label2int)
+            
 
-            self.label_set = set(['UNK'])
-            for token_labels in self.labels:
-                self.label_set = self.label_set | set(token_labels)
+    def set_label_info(self, label2int):
+        self.label_set = set(['UNK'])
+        for token_labels in self.labels:
+            self.label_set = self.label_set | set(token_labels)
 
-            if label2int is None:  # learn labels
-                self.label2int = {'UNK': 0}
-                for idx, label in enumerate(sorted(self.label_set - set(['UNK'])), 1):
-                    self.label2int[label] = idx
-            else:  # set labels from other fold
-                self.label2int = label2int
+        if label2int is None:  # learn labels
+            self.label2int = {'UNK': 0}
+            for idx, label in enumerate(sorted(self.label_set - set(['UNK'])), 1):
+                self.label2int[label] = idx
+        else:  # set labels from other fold
+            self.label2int = label2int
 
-            self.int2label = {val: key for key, val in self.label2int.items()}
+        self.int2label = {val: key for key, val in self.label2int.items()}
 
-            self.num_labels = len(self.int2label)
+        self.num_labels = len(self.int2label)
 
 
     def __len__(self):
