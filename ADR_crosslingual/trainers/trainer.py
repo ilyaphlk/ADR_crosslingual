@@ -1,3 +1,5 @@
+import time
+import torch
 from torch.utils.tensorboard import SummaryWriter
 
 def train(model, dataloader, cur_epoch,
