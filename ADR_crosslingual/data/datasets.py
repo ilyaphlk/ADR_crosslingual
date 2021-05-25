@@ -77,9 +77,9 @@ class BratDataset(torch.utils.data.Dataset):
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
 
         if self.labeled:
-            labels = [self.label2int['UNK']] + encoded_labels + [self.label2int['UNK']]
             encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
                               self.labels[idx][:len(encoded_text['input_ids'])-2]))
+            labels = [self.label2int['UNK']] + encoded_labels + [self.label2int['UNK']]
             item['labels'] = torch.tensor(labels)
 
         return item
