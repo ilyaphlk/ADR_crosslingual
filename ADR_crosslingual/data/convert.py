@@ -5,6 +5,8 @@ import os
 
 def webanno2brat(webanno_dir, out_dir):
     os.mkdir(out_dir)
+    os.mkdir(os.path.join(out_dir, "text"))
+    os.mkdir(os.path.join(out_dir, "annotation"))
     skipped_counter = 0
     for tsv_file in glob(os.path.join(webanno_dir, 'annotation/*/*.tsv')):
         filename = tsv_file.split('/')[-2]
@@ -28,11 +30,11 @@ def webanno2brat(webanno_dir, out_dir):
                 text = '\n'.join(sentences) + '\n'
                 entities = '\n'.join(str_entities) + '\n'
                 
-                txt_path = os.path.join(out_dir, filename[:-4]+'.txt')
+                txt_path = os.path.join(out_dir, "text", filename[:-4]+'.txt')
                 with open(txt_path, 'w+') as txt_file:
                     txt_file.write(text)
 
-                ann_path = os.path.join(out_dir, filename[:-4]+'.ann')
+                ann_path = os.path.join(out_dir, "annotation", filename[:-4]+'.ann')
                 with open(ann_path, 'w+') as ann_file:
                     ann_file.write(entities)
 
