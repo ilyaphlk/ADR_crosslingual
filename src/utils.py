@@ -6,6 +6,7 @@ import time
 import datetime
 from seqeval.metrics import f1_score
 from seqeval.metrics import accuracy_score
+from dataclasses import dataclass
 
 
 def collate_dicts(samples, pad_id=0):
@@ -68,3 +69,12 @@ def compute_metrics(labels, preds, original_lens, int2label):
         'accuracy': acc,
         'f1': f1,
     }
+
+
+@dataclass
+class ExperimentConfig:
+    learning_rate: float = 2e-5
+    base_model_type: str = 'bert'
+    n_few_shot_samples: int = 0
+    seed: int = None
+    
