@@ -83,5 +83,5 @@ class ExperimentConfig:
         return "_".join([
                         "arch="+self.base_model_type,
                         "lr="+str(self.learning_rate),
-                        "n_few_shot="+self.n_few_shot,
+                        "n_few_shot="+str(self.n_few_shot_samples),
                 ])
