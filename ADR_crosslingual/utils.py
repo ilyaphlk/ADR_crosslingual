@@ -75,6 +75,13 @@ def compute_metrics(labels, preds, original_lens, int2label):
 class ExperimentConfig:
     learning_rate: float = 2e-5
     base_model_type: str = 'bert'
+    pretrained_name: str = 'bert-base-multilingual-cased'
     n_few_shot_samples: int = 0
     seed: int = None
     
+    def get_tb_info():
+        return "_".join([
+                        "arch="+base_model_type,
+                        "lr="+str(learning_rate),
+                        "n_few_shot="+n_few_shot,
+                ])
