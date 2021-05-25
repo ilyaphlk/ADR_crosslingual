@@ -6,7 +6,7 @@ setuptools.setup(
     author="Ilya Pakhalko",
     author_email="ilyaphlk@github.com",
     description="A small example package",
-    long_description=long_description,
+    long_description='',
     long_description_content_type="text/markdown",
     url='https://github.com/ilyaphlk/ADR_crosslingual',
     project_urls={
