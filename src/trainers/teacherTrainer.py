@@ -1,6 +1,6 @@
 from torch.utils.tensorboard import SummaryWriter
 
-def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
+def train_teacher(dataloader, cur_epoch, logging_interval=10, tensorboard_writer=None):
     '''
     one epoch of training
     '''
@@ -10,7 +10,6 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
     total_train_loss = 0
 
     model.train()
-    dataloader = train_dataloader
 
     original_lens_batches = []
     labels_batches = []
@@ -58,14 +57,12 @@ def train_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
     return avg_train_loss, training_time
 
 
-def eval_teacher(cur_epoch, logging_interval=10, tensorboard_writer=None):
+def eval_teacher(dataloader, cur_epoch, logging_interval=10, tensorboard_writer=None):
 
     t0 = time.time()
     model.eval()
 
     total_eval_loss = 0
-
-    dataloader = test_dataloader
 
     original_lens_batches = []
     labels_batches = []
