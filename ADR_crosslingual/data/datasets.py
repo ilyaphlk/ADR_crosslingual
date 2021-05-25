@@ -2,6 +2,7 @@ import os
 from glob import glob
 import sys
 import torch
+import numpy as np
 from NLPDatasetIO.dataset import Dataset
 
 
