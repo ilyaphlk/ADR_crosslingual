@@ -6,7 +6,8 @@ from ADR_crosslingual.utils import format_time, compute_metrics
 
 def train(model, dataloader, cur_epoch, device, optimizer,
           teacher_model=None, sampler=None,
-          logging_interval=10, tensorboard_writer=None, tb_postfix=" (train)", print_progress=True):
+          logging_interval=10, tensorboard_writer=None, tb_postfix=" (train)", print_progress=True,
+          do_compute_metrics=True):
     '''
     one epoch of training
     model - model to train
@@ -62,8 +63,9 @@ def train(model, dataloader, cur_epoch, device, optimizer,
 
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
-        metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
-        tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
+        if do_compute_metrics:
+            metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
+            tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
 
     if print_progress:
         print("")
