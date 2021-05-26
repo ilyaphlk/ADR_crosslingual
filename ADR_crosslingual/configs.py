@@ -40,14 +40,20 @@ class TrainConfig:
 class SamplerConfig:
     def __init__(self,
         sampler_class=None,
-        sampler_kwargs=None,
+        sampler_kwargs={
+            'strategy':None,
+            'n_samples_out':None
+        },
+        n_samples_in=None
     ):
     self.sampler_class = sampler_class
     self.sampler_kwargs = sampler_kwargs
+    self.n_samples_in = n_samples_in
 
     def __str__(self):
         return "; ".join(["sampler=", str(sampler_class),
-                          "sampler_args=", str(sampler_kwargs),])
+                          "sampler_args=", str(sampler_kwargs),
+                          "n_samples_in=", str(n_samples_in)])
 
 
 @dataclass
