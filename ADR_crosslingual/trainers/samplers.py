@@ -4,13 +4,14 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy, n_samples_out):
+    def __init__(self, strategy='most', n_samples_out=1, n_samples_in=1):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
         '''
         assert strategy in ['most', 'mid', 'least']
         self.strategy = strategy
+        self.n_samples_in = n_samples_in
         self.n_samples_out = n_samples_out
 
 
