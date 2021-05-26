@@ -15,6 +15,9 @@ def collate_dicts(samples, pad_id=0):
     '''
     batch = {}
 
+    sample_lens = [len(sample['input_ids']) for sample in samples]
+    batch['original_lens'] = torch.tensor(sample_lens)
+
     for key in samples[0].keys():
         padding_value = 0
         if key == 'input_ids':
