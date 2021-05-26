@@ -4,14 +4,13 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy='most', n_samples_out=1, n_samples_in=1):
+    def __init__(self, strategy='most', n_samples_out=1):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
         '''
         assert strategy in ['most', 'mid', 'least']
         self.strategy = strategy
-        self.n_samples_in = n_samples_in
         self.n_samples_out = n_samples_out
 
 
@@ -49,6 +48,10 @@ class BaseUncertaintySampler:
         filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
 
         return filtered_batch
+
+
+    def get_student_batch():
+        pass
 
 
     def _calculate_uncertainty_score(self, probs):
