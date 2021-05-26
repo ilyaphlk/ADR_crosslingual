@@ -61,6 +61,7 @@ class ExperimentConfig:
     teacher_config: TrainConfig
     student_config: TrainConfig
     sampler_config: SamplerConfig
+    n_few_shot: int = 0
     experiment_name: str = "sample_exp_name"
     seed: int = 42
 
