@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from transformers import (
-    BertTokenizer, BertConfig, BertPretrainedModel, BertModel
+    BertTokenizer, BertConfig, BertPretrainedModel, BertModel,
     AdamW,
 
 )
