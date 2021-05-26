@@ -61,11 +61,7 @@ def train(model, dataloader, cur_epoch, device, optimizer,
 
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
-        #tensorboard_writer.add_scalar('time per epoch (train)', training_time, cur_epoch)
-
         metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
-        #for metric_name, metric_value in metrics.items():
-        #    tensorboard_writer.add_scalar(metric_name+" (train)", metric_value, cur_epoch)
         tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
 
     if print_progress:
@@ -108,11 +104,7 @@ def eval(model, dataloader, cur_epoch, device,
 
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_val_loss, cur_epoch)
-        #tensorboard_writer.add_scalar('time per epoch (test)', validation_time, cur_epoch)
-        
         metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, dataloader.dataset.int2label)
-        #for metric_name, metric_value in metrics.items():
-        #    tensorboard_writer.add_scalar(metric_name+" (test)", metric_value, cur_epoch)
         tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
         
     if print_progress:
