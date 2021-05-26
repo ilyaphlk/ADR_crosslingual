@@ -15,20 +15,24 @@ class BaseUncertaintySampler:
 
 
     def __call__(self, batch, model):
+        device = next(model.parameters()).device
+
         N = batch['input_ids'].shape[0]
         if N <= self.n_samples_out:  # no need to select samples
+            for key, t in batch.items():
+                batch[key] = t.to(device)
+            batch['teacher_logits'] = model(**batch).logits.to(device)
             return batch
-
-        device = next(model.parameters()).device
 
         scores = []
         computed_logits = []
+
         for i in range(N):
             sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
             logits = model(**sample).logits
             probs = torch.nn.functional.softmax(logits, dim=-1)
             scores.append(self._calculate_uncertainty_score(probs))
-            computed_logits.append({'teacher_logits':logits})
+            computed_logits.append({'teacher_logits':logits.squeeze()})
 
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
