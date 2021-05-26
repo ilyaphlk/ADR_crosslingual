@@ -14,15 +14,18 @@ class BaseUncertaintySampler:
 
 
     def __call__(self, batch, model):
-        if batch.shape[0] <= self.n_samples_out:  # no need to select samples
+        N = batch['input_ids'].shape[0]
+        if N <= self.n_samples_out:  # no need to select samples
             return batch
 
         scores = []
-        for i in batch.shape[0]:
-            sample = {key : val[i,:].to(device) for key, val in batch.items()}
+        computed_logits = []
+        for i in range(N):
+            sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
             logits = model(**sample).logits
             probs = torch.nn.functional.softmax(logits, dim=-1)
             scores.append(self._calculate_uncertainty_score(probs))
+            computed_logits.append({'teacher_logits':logits})
 
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
@@ -33,7 +36,11 @@ class BaseUncertaintySampler:
         elif self.strategy is 'mid':
             raise NotImplementedError
 
-        return {key : val[idx_selected,:] for key, val in batch.items()}
+        filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
+        computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
+        filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
+
+        return filtered_batch
 
 
     def _calculate_uncertainty_score(self, probs):
@@ -52,4 +59,3 @@ class MarginOfConfidenceSampler(BaseUncertaintySampler):
         mean_margin = margins.float().mean()
         
         return mean_margin
-
