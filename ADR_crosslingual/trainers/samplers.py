@@ -4,12 +4,12 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy='most', n_samples_out=1):
+    def __init__(self, strategy='confident', n_samples_out=1):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
         '''
-        assert strategy in ['most', 'mid', 'least']
+        assert strategy in ['confident', 'mid', 'uncertain']
         self.strategy = strategy
         self.n_samples_out = n_samples_out
 
@@ -36,9 +36,9 @@ class BaseUncertaintySampler:
 
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
-        if self.strategy is 'most':
+        if self.strategy is 'confident':
             idx_selected = idx_sorted[:self.n_samples_out]
-        elif self.startegy is 'least':
+        elif self.startegy is 'uncertain':
             idx_selected = idx_sorted[-self.n_samples_out:]
         elif self.strategy is 'mid':
             raise NotImplementedError
@@ -50,7 +50,7 @@ class BaseUncertaintySampler:
         return filtered_batch
 
 
-    def get_student_batch():
+    def get_student_batch(self, batch_in, model, teacher_batch_sz):
         pass
 
 
@@ -69,4 +69,32 @@ class MarginOfConfidenceSampler(BaseUncertaintySampler):
         margins = highest_probs[:, 0] - highest_probs[:, 1]
         mean_margin = margins.float().mean()
         
-        return mean_margin
+        return -mean_margin
+
+
+class LeastConfidenceSampling(BaseUncertaintySampler):
+    def _calculate_uncertainty_score(self, probs):
+        probs = probs.squeeze()
+        highest_probs = torch.topk(probs, 1, dim=-1).values
+        mean_difference = (1 - highest_probs).float().mean()
+
+        return mean_difference
+
+
+class RatioOfConfidence(BaseUncertaintySampler):
+    def _calculate_uncertainty_score(self, probs, eps=1e-3):
+        probs = probs.squeeze()
+        highest_probs = torch.topk(probs, 2, dim=-1).values
+        ratios = highest_probs[:, 0] / (highest_probs[:, 1] + eps)
+        mean_ratio = ratios.float().mean()
+
+        return -mean_ratio
+
+
+class EntropySampler(BaseUncertaintySampler):
+    def _calculate_uncertainty_score(self, probs, eps=1e-3):
+        probs = probs.squeeze()
+        entropies = -probs * torch.log2(probs)
+        return entropies.float().mean()
+
+
