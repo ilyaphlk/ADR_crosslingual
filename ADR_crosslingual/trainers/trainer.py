@@ -32,15 +32,14 @@ def train(model, dataloader, cur_epoch, device, optimizer,
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
+        for key, t in batch.items():
+            batch[key] = t.to(device)
+        original_lens_batches.append(batch.pop('original_lens', None))
+
         if sampler is not None:
             batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
         elif teacher_model is not None:
             batch['teacher_logits'] = teacher_model(**batch).logits.to(device)
-
-        for key, t in batch.items():
-            batch[key] = t.to(device)
-
-        original_lens_batches.append(batch.pop('original_lens', None))
         
         model.zero_grad()        
         result = model(**batch)
