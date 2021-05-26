@@ -18,6 +18,8 @@ class BaseUncertaintySampler:
         if N <= self.n_samples_out:  # no need to select samples
             return batch
 
+        device = next(model.parameters()).device
+
         scores = []
         computed_logits = []
         for i in range(N):
