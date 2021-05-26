@@ -9,14 +9,15 @@ from seqeval.metrics import accuracy_score
 from dataclasses import dataclass
 
 
-def collate_dicts(samples, pad_id=0):
+def collate_dicts(samples, pad_id=0, return_lens=True):
     '''
         samples: list of dicts
     '''
     batch = {}
 
-    sample_lens = [len(sample['input_ids']) for sample in samples]
-    batch['original_lens'] = torch.tensor(sample_lens)
+    if return_lens:
+        sample_lens = [len(sample['input_ids']) for sample in samples]
+        batch['original_lens'] = torch.tensor(sample_lens)
 
     for key in samples[0].keys():
         padding_value = 0
