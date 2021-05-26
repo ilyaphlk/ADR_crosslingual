@@ -58,10 +58,11 @@ class SamplerConfig:
 
 @dataclass
 class ExperimentConfig:
-    teacher_config: TrainConfig,
-    student_config: TrainConfig,
-    sampler_config: SamplerConfig,
-    experiment_name: "sample_exp_name"
+    teacher_config: TrainConfig
+    student_config: TrainConfig
+    sampler_config: SamplerConfig
+    experiment_name: str = "sample_exp_name"
+    seed: int = 42
 
 
     def __str__():
