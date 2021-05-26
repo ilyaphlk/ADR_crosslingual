@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
