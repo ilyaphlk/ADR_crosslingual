@@ -73,26 +73,3 @@ def compute_metrics(labels, preds, original_lens, int2label):
         'accuracy': acc,
         'f1': f1,
     }
-
-
-@dataclass
-class ExperimentConfig:
-    base_model_type: str = 'bert'
-    pretrained_name: str = 'bert-base-multilingual-cased'
-    optimizer: str = 'AdamW'
-    learning_rate: float = 2e-5
-    student_loss: str = 'MSE'
-    n_few_shot_samples: int = 0
-    sampling_strategy: str = 'None'
-    seed: int = None
-    
-    def get_tb_info(self):
-        return "_".join([
-                        "arch="+str(self.base_model_type),
-                        "optim="+str(self.optimizer),
-                        "lr="+str(self.learning_rate),
-                        "stud_loss="+str(self.student_loss),
-                        "n_few_shot="+str(self.n_few_shot_samples),
-                        "sampling_strat="+str(self.sampling_strategy),
-                        "seed="+str(self.seed)
-                ])
