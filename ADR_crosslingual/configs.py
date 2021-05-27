@@ -22,7 +22,6 @@ class TrainConfig:
         test_batch_sz=1,
         epochs = 1
     ):
-        self.model_role = model_role
         self.optimizer_class = optimizer_class
         self.optimizer_kwargs = optimizer_kwargs
         self.model_type = model_type
