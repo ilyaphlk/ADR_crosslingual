@@ -14,7 +14,7 @@ class TrainConfig:
         model_type={
             'tokenizer':BertTokenizer,
             'config':BertConfig,
-            'pretrained':BertPretrainedModel
+            'pretrained':BertPretrainedModel,
             'model':BertModel,
         },
         model_checkpoint='bert-base-multilingual-cased',
