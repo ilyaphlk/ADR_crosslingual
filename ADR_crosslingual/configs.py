@@ -22,12 +22,12 @@ class TrainConfig:
         test_batch_sz=1,
     ):
 
-    self.optimizer_class = optimizer_class
-    self.optimizer_kwargs = optimizer_kwargs
-    self.model_type = model_type
-    self.model_checkpoint = model_checkpoint
-    self.train_batch_sz = train_batch_sz
-    self.test_batch_sz = test_batch_sz
+        self.optimizer_class = optimizer_class
+        self.optimizer_kwargs = optimizer_kwargs
+        self.model_type = model_type
+        self.model_checkpoint = model_checkpoint
+        self.train_batch_sz = train_batch_sz
+        self.test_batch_sz = test_batch_sz
 
     def __str__(self):
         return "; ".join([str(self.model_type['model']),
@@ -46,9 +46,9 @@ class SamplerConfig:
         },
         n_samples_in=None
     ):
-    self.sampler_class = sampler_class
-    self.sampler_kwargs = sampler_kwargs
-    self.n_samples_in = n_samples_in
+        self.sampler_class = sampler_class
+        self.sampler_kwargs = sampler_kwargs
+        self.n_samples_in = n_samples_in
 
     def __str__(self):
         return "; ".join(["sampler=", str(sampler_class),
