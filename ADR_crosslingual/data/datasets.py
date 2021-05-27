@@ -24,8 +24,7 @@ class BratDataset(torch.utils.data.Dataset):
         self.fold_path = fold_path
 
         if documents_iter is None:
-            self.documents = Dataset(location=fold_path, split=fold_type,
-                                 tokenize=tokenizer.tokenize, **kwargsDataset).documents
+            self.documents = Dataset(location=fold_path, split=fold_type, **kwargsDataset).documents
         else:
             self.documents = []
             for documents in documents_iter:
