@@ -67,8 +67,8 @@ class ExperimentConfig:
 
 
     def __str__(self):
-        return "\n".join(self.experiment_name,
+        return "\n".join([self.experiment_name,
                          "n_few_shot="+str(self.n_few_shot),
                          "teacher="+str(self.teacher_config),
                          "student="+str(self.student_config),
-                         "sampler="+str(self.sampler_config))
+                         "sampler="+str(self.sampler_config)])
