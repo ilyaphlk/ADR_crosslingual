@@ -33,17 +33,24 @@ def train(model, dataloader, cur_epoch, device, optimizer,
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
-        device = next(model.parameters()).device
-        for key, t in batch.items():
-            batch[key] = t.to(device)
         original_lens_batches.append(batch.pop('original_lens', None))
+        device = next(model.parameters()).device
+
+        # ?TODO explicitly move batch to cpu?
 
         if sampler is not None:
             batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
 
         if teacher_model is not None and 'teacher_logits' not in batch:
             teacher_model.eval()
-            batch['teacher_logits'] = teacher_model(**batch).logits.to(device)  # implies that student and teacher are on the same device
+            teacher_device = next(teacher_model.parameters()).device
+            for key, t in batch.items():
+                batch[key] = t.to(teacher_device)
+            batch['teacher_logits'] = teacher_model(**batch).logits
+
+        # move batch yet again
+        for key, t in batch.items():
+            batch[key] = t.to(device)
         
         model.zero_grad()        
         result = model(**batch)
