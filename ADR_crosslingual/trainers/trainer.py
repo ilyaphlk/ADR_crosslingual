@@ -40,7 +40,9 @@ def train(model, dataloader, cur_epoch, device, optimizer,
 
         if sampler is not None:
             batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
-        elif teacher_model is not None:
+
+        if teacher_model is not None and 'teacher_logits' not in batch:
+            teacher_model.eval()
             batch['teacher_logits'] = teacher_model(**batch).logits.to(device)  # implies that student and teacher are on the same device
         
         model.zero_grad()        
