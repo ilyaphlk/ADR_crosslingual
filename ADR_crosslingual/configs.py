@@ -28,7 +28,7 @@ class TrainConfig:
         self.model_checkpoint = model_checkpoint
         self.train_batch_sz = train_batch_sz
         self.test_batch_sz = test_batch_sz
-        self.epochs = 1
+        self.epochs = epochs
 
     def __str__(self):
         return "\n".join(["model_type = "+str(self.model_type['model']),
