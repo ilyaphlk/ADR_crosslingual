@@ -50,8 +50,39 @@ class BaseUncertaintySampler:
         return filtered_batch
 
 
-    def get_student_batch(self, batch_in, model, teacher_batch_sz):
-        pass
+    def get_student_batch(self, batch, model, teacher_batch_sz=1):
+        device = next(model.parameters()).device
+
+        N = batch['input_ids'].shape[0]
+        if N <= self.n_samples_out:  # no need to select samples
+            for key, t in batch.items():
+                batch[key] = t.to(device)
+            batch['teacher_logits'] = model(**batch).logits.to(device)
+            return batch
+
+        computed_logits = []
+
+        for i in range(N):
+            sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
+            logits = model(**sample).logits
+            probs = torch.nn.functional.softmax(logits, dim=-1)
+            scores.append(self._calculate_uncertainty_score(probs))
+            computed_logits.append({'teacher_logits':logits.squeeze()})
+
+        scores = np.array(scores)
+        idx_sorted = np.argsort(scores)
+        if self.strategy is 'confident':
+            idx_selected = idx_sorted[:self.n_samples_out]
+        elif self.startegy is 'uncertain':
+            idx_selected = idx_sorted[-self.n_samples_out:]
+        elif self.strategy is 'mid':
+            raise NotImplementedError
+
+        filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
+        computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
+        filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
+
+        return filtered_batch
 
 
     def _calculate_uncertainty_score(self, probs):
