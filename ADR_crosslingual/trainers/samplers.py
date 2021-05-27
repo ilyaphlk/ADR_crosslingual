@@ -39,14 +39,23 @@ class BaseUncertaintySampler:
             probs_list = []
             logits = None
             for _ in range(self.n_forward_passes):
-                logits = model(**sample).logits.squeeze()
-                probs = torch.nn.functional.softmax(logits, dim=-1)
-                probs_list.append(probs)
+                #logits = model(**sample).logits.squeeze()
+                with torch.no_grad():
+                    probs = torch.nn.functional.softmax(
+                        model(**sample).logits.squeeze().to('cpu'),
+                        dim=-1
+                    )
+                    probs_list.append(probs)
 
             probs = torch.stack(probs_list, dim=0)
             scores.append(self._calculate_uncertainty_score(probs))
+
+            del sample
+            torch.cuda.empty_cache()
+            '''
             if not self.stochastic:
                 computed_logits.append({'teacher_logits':logits})
+            '''
 
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
@@ -59,9 +68,11 @@ class BaseUncertaintySampler:
 
         filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
 
+        '''
         if not self.stochastic:
             computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
             filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
+        '''
 
         return filtered_batch
 
