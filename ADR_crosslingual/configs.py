@@ -14,6 +14,7 @@ class TrainConfig:
             'config':BertConfig,
             'pretrained':BertPreTrainedModel,
             'model':BertModel,
+            'subword_prefix': '##'
         },
         optimizer_class=AdamW,
         optimizer_kwargs={'lr':2e-5, 'eps':1e-8},
@@ -70,7 +71,7 @@ class ExperimentConfig:
 
     def __str__(self):
         return "\n".join(["experiment_name = "+str(self.experiment_name),
-                         "n_few_shot = "+str(self.n_few_shot),
+                         "n_few_shot = "+str(self.n_few_shot)+"\n",
                          "teacher:\n"+str(self.teacher_config)+"\n",
                          "student:\n"+str(self.student_config)+"\n",
                          "sampler:\n"+str(self.sampler_config)])
