@@ -51,9 +51,9 @@ class SamplerConfig:
         self.n_samples_in = n_samples_in
 
     def __str__(self):
-        return "; ".join(["sampler=", str(sampler_class),
-                          "sampler_args=", str(sampler_kwargs),
-                          "n_samples_in=", str(n_samples_in)])
+        return "; ".join(["sampler=", str(self.sampler_class),
+                          "sampler_args=", str(self.sampler_kwargs),
+                          "n_samples_in=", str(self.n_samples_in)])
 
 
 @dataclass
