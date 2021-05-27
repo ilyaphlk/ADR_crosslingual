@@ -12,9 +12,13 @@ class BaseUncertaintySampler:
         assert strategy in ['confident', 'mid', 'uncertain']
         self.strategy = strategy
         self.n_samples_out = n_samples_out
+        self.stochastic = None
+        self.n_forward_passes = 1
 
 
     def __call__(self, batch, model):
+
+        model.eval()
         device = next(model.parameters()).device
 
         N = batch['input_ids'].shape[0]
@@ -23,16 +27,26 @@ class BaseUncertaintySampler:
                 batch[key] = t.to(device)
             batch['teacher_logits'] = model(**batch).logits.to(device)
             return batch
+
+        if self.stochastic:  # in order to use MC Dropout
+            model.train()
 
         scores = []
         computed_logits = []
 
         for i in range(N):
             sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
-            logits = model(**sample).logits
-            probs = torch.nn.functional.softmax(logits, dim=-1)
+            probs_list = []
+            logits = None
+            for _ in range(self.n_forward_passes):
+                logits = model(**sample).logits.squeeze()
+                probs = torch.nn.functional.softmax(logits, dim=-1)
+                probs_list.append(probs)
+
+            probs = torch.stack(probs_list, dim=0)
             scores.append(self._calculate_uncertainty_score(probs))
-            computed_logits.append({'teacher_logits':logits.squeeze()})
+            if not self.stochastic:
+                computed_logits.append({'teacher_logits':logits})
 
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
@@ -44,45 +58,16 @@ class BaseUncertaintySampler:
             raise NotImplementedError
 
         filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
-        computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
-        filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
+
+        if not self.stochastic:
+            computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
+            filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
 
         return filtered_batch
 
 
     def get_student_batch(self, batch, model, teacher_batch_sz=1):
-        device = next(model.parameters()).device
-
-        N = batch['input_ids'].shape[0]
-        if N <= self.n_samples_out:  # no need to select samples
-            for key, t in batch.items():
-                batch[key] = t.to(device)
-            batch['teacher_logits'] = model(**batch).logits.to(device)
-            return batch
-
-        computed_logits = []
-
-        for i in range(N):
-            sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
-            logits = model(**sample).logits
-            probs = torch.nn.functional.softmax(logits, dim=-1)
-            scores.append(self._calculate_uncertainty_score(probs))
-            computed_logits.append({'teacher_logits':logits.squeeze()})
-
-        scores = np.array(scores)
-        idx_sorted = np.argsort(scores)
-        if self.strategy is 'confident':
-            idx_selected = idx_sorted[:self.n_samples_out]
-        elif self.startegy is 'uncertain':
-            idx_selected = idx_sorted[-self.n_samples_out:]
-        elif self.strategy is 'mid':
-            raise NotImplementedError
-
-        filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
-        computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
-        filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
-
-        return filtered_batch
+        pass
 
 
     def _calculate_uncertainty_score(self, probs):
@@ -129,3 +114,24 @@ class EntropySampler(BaseUncertaintySampler):
         return entropies.float().mean()
 
 
+class BALDSampler(BaseUncertaintySampler):
+    def __init__(self, strategy, n_samples_out, n_forward_passes):
+        super().__init__(strategy, n_samples_out)
+        self.n_forward_passes = n_forward_passes
+        self.stochastic = True
+
+    def _calculate_uncertainty_score(self, probs):
+        mean_entropy_of_pred = -((probs * torch.log(probs)).sum(dim=-1)).mean(dim=0)
+        entropy_of_mean_pred = -((probs.mean(dim=0))*torch.log(probs.mean(dim=0))).sum(dim=-1)
+        token_scores = entropy_of_mean_pred - mean_entropy_of_pred
+        return token_scores.mean()
+
+
+class VarianceSampler(BaseUncertaintySampler):
+    def __init__(self, strategy, n_samples_out, n_forward_passes):
+        super().__init__(strategy, n_samples_out)
+        self.n_forward_passes = n_forward_passes
+        self.stochastic = True
+
+    def _calculate_uncertainty_score(self, probs):
+        pass
