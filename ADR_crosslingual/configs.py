@@ -9,32 +9,35 @@ from transformers import (
 
 class TrainConfig:
     def __init__(self,
-        optimizer_class=AdamW,
-        optimizer_kwargs={'lr':2e-5},
         model_type={
             'tokenizer':BertTokenizer,
             'config':BertConfig,
             'pretrained':BertPreTrainedModel,
             'model':BertModel,
         },
+        optimizer_class=AdamW,
+        optimizer_kwargs={'lr':2e-5, 'eps':1e-8},
         model_checkpoint='bert-base-multilingual-cased',
         train_batch_sz=1,
         test_batch_sz=1,
+        epochs = 1
     ):
-
+        self.model_role = model_role
         self.optimizer_class = optimizer_class
         self.optimizer_kwargs = optimizer_kwargs
         self.model_type = model_type
         self.model_checkpoint = model_checkpoint
         self.train_batch_sz = train_batch_sz
         self.test_batch_sz = test_batch_sz
+        self.epochs = 1
 
     def __str__(self):
-        return "; ".join([str(self.model_type['model']),
-                          str(self.optimizer_class),
-                          str(self.optimizer_kwargs),
-                          "train_batch_sz="+str(self.train_batch_sz),
-                          "test_batch_sz="+str(self.test_batch_sz)])
+        return "\n".join(["model_type = "+str(self.model_type['model']),
+                          "model_checkpoint = "+str(self.model_checkpoint),
+                          "optimizer = "+str(self.optimizer_class),
+                          "optimizer_kwargs = "+str(self.optimizer_kwargs),
+                          "train_batch_sz = "+str(self.train_batch_sz),
+                          "test_batch_sz = "+str(self.test_batch_sz)])
 
 
 class SamplerConfig:
@@ -51,9 +54,9 @@ class SamplerConfig:
         self.n_samples_in = n_samples_in
 
     def __str__(self):
-        return "; ".join(["sampler=", str(self.sampler_class),
-                          "sampler_args=", str(self.sampler_kwargs),
-                          "n_samples_in=", str(self.n_samples_in)])
+        return "\n".join(["sampler = ", str(self.sampler_class),
+                          "sampler_args = ", str(self.sampler_kwargs),
+                          "n_samples_in = ", str(self.n_samples_in)])
 
 
 @dataclass
@@ -67,8 +70,8 @@ class ExperimentConfig:
 
 
     def __str__(self):
-        return "\n".join([self.experiment_name,
-                         "n_few_shot="+str(self.n_few_shot),
-                         "teacher="+str(self.teacher_config),
-                         "student="+str(self.student_config),
-                         "sampler="+str(self.sampler_config)])
+        return "\n".join(["experiment_name = "+str(self.experiment_name),
+                         "n_few_shot = "+str(self.n_few_shot),
+                         "teacher:\n"+str(self.teacher_config)+"\n",
+                         "student:\n"+str(self.student_config)+"\n",
+                         "sampler:\n"+str(self.sampler_config)])
