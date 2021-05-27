@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from transformers import (
-    BertTokenizer, BertConfig, BertPretrainedModel, BertModel,
+    BertTokenizer, BertConfig, BertPreTrainedModel, BertModel,
     AdamW,
 
 )
@@ -14,7 +14,7 @@ class TrainConfig:
         model_type={
             'tokenizer':BertTokenizer,
             'config':BertConfig,
-            'pretrained':BertPretrainedModel,
+            'pretrained':BertPreTrainedModel,
             'model':BertModel,
         },
         model_checkpoint='bert-base-multilingual-cased',
