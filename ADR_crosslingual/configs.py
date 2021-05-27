@@ -66,7 +66,7 @@ class ExperimentConfig:
     seed: int = 42
 
 
-    def __str__():
+    def __str__(self):
         return "\n".join(self.experiment_name,
                          "n_few_shot="+str(self.n_few_shot),
                          "teacher="+str(self.teacher_config),
