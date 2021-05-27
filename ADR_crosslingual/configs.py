@@ -21,7 +21,7 @@ class TrainConfig:
         model_checkpoint='bert-base-multilingual-cased',
         train_batch_sz=1,
         test_batch_sz=1,
-        epochs = 1
+        epochs = 1,
     ):
         self.optimizer_class = optimizer_class
         self.optimizer_kwargs = optimizer_kwargs
@@ -31,13 +31,14 @@ class TrainConfig:
         self.test_batch_sz = test_batch_sz
         self.epochs = epochs
 
+
     def __str__(self):
         return "\n".join(["model_type = "+str(self.model_type['model']),
                           "model_checkpoint = "+str(self.model_checkpoint),
                           "optimizer = "+str(self.optimizer_class),
                           "optimizer_kwargs = "+str(self.optimizer_kwargs),
                           "train_batch_sz = "+str(self.train_batch_sz),
-                          "test_batch_sz = "+str(self.test_batch_sz)])
+                          "test_batch_sz = "+str(self.test_batch_sz),])
 
 
 class SamplerConfig:
@@ -67,11 +68,13 @@ class ExperimentConfig:
     n_few_shot: int = 0
     experiment_name: str = "sample_exp_name"
     seed: int = 42
+    teacher_set: str = "cadec"
 
 
     def __str__(self):
-        return "\n".join(["experiment_name = "+str(self.experiment_name),
-                         "n_few_shot = "+str(self.n_few_shot)+"\n",
+        return "\n".join(["experiment_name = "+str(self.experiment_name)+"; ",
+                         "n_few_shot = "+str(self.n_few_shot)+"; ",
+                         "teacher_set = "+str(self.teacher_set)+"; \n",
                          "teacher:\n"+str(self.teacher_config)+"\n",
                          "student:\n"+str(self.student_config)+"\n",
                          "sampler:\n"+str(self.sampler_config)])
