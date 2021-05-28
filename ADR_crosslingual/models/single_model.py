@@ -101,8 +101,12 @@ class BertTokenClassifier(BertPreTrainedModel):
             attentions=outputs.attentions,
         )
 
+    def __str__(self):
+        return "BertTokenClassifier"
+
     def __repr__(self):
         return "BertTokenClassifier"
+
 
 
 
@@ -196,6 +200,9 @@ class XLMTokenClassifier(XLMPreTrainedModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+
+    def __str__(self):
+        return "XLMTokenClassifier"
 
     def __repr__(self):
         return "XLMTokenClassifier"
