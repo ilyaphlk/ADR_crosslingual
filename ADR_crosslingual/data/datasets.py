@@ -92,7 +92,6 @@ class BratDataset(torch.utils.data.Dataset):
             idx = idx.tolist()
 
         document = self.documents[idx]
-
         
         #encoded_text = self.tokenizer.encode_plus(document.text, max_length=512)
         #can't use that robustly because of how NLPDatasetIO works
@@ -107,11 +106,11 @@ class BratDataset(torch.utils.data.Dataset):
                                                      self.tokenizer.sep_token_id)
 
         text_tokens = [token.token for token in document._tokens][:510]
-        encoded_text['input_ids'] = [preceding_token_id]+tokenizer.convert_tokens_to_ids(text_tokens)+[trailing_token_id]
+        encoded_text['input_ids'] = ([preceding_token_id] + 
+                                     self.tokenizer.convert_tokens_to_ids(text_tokens) +
+                                     [trailing_token_id])
         encoded_text['token_type_ids'] = torch.zeros(len(encoded_text['input_ids']))
         encoded_text['attention_mask'] = torch.ones(len(encoded_text['input_ids']))
-
-
 
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
 
