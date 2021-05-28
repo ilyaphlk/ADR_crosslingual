@@ -115,7 +115,7 @@ class XLMTokenClassifier(XLMPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
 
-        self.bert = XLMModel(config, add_pooling_layer=False)
+        self.bert = XLMModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
 
@@ -126,6 +126,7 @@ class XLMTokenClassifier(XLMPreTrainedModel):
         self,
         input_ids=None,
         attention_mask=None,
+        langs=None,
         token_type_ids=None,
         position_ids=None,
         head_mask=None,
