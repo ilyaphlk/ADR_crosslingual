@@ -8,7 +8,7 @@ from NLPDatasetIO.dataset import Dataset
 
 class BratDataset(torch.utils.data.Dataset):
     def __init__(self, fold_path, fold_type, tokenizer, labeled=True, label2int=None, kwargsDataset={'format':'brat'},
-                 to_sentences=False, random_state=None, shuffle=False, documents_iter=None):
+                 to_sentences=False, random_state=None, shuffle=False, datasets_iter=None):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files
           fold_type: 'train', 'dev' or 'test'
@@ -23,14 +23,14 @@ class BratDataset(torch.utils.data.Dataset):
         self.fold_type = fold_type
         self.fold_path = fold_path
 
-        if documents_iter is None:
+        if datasets_iter is None:
             self.documents = Dataset(location=fold_path, split=fold_type, **kwargsDataset).documents
         else:
             self.documents = []
-            for documents in documents_iter:
-                self.documents.extend(documents)
+            for dataset in datasets_iter:
+                self.documents.extend(dataset.documents)
 
-        if to_sentences:
+        if to_sentences and datasets_iter is None:
             sentences = []
             for doc in self.documents:
                 sentences.extend(doc.sentences)
@@ -48,7 +48,13 @@ class BratDataset(torch.utils.data.Dataset):
         self.labeled = labeled
 
         if self.labeled:
-            self.labels = [doc.token_labels for doc in self.documents]
+            if datasets_iter is None:
+                self.labels = [doc.token_labels for doc in self.documents]
+            else:
+                self.labels = []
+                for dataset in datasets_iter:
+                    self.labels.extend(dataset.labels)
+
             self.set_label_info(label2int)
             
 
