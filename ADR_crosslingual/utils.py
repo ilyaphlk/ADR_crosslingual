@@ -78,21 +78,17 @@ def compute_metrics(labels, preds, original_lens, int2label):
     types = ['multiclass', 'binary']
 
     res = {}
+
+    res['accuracy'] = accuracy_score(labels, preds, mode='strict') # for the sake of visibility, compute only 1 accuracy
     
     for type_ in types:
+        y_true, y_pred = labels, preds if type_ not 'binary' else binary_labels, binary_preds
         for mode in modes:
-            y_true, y_pred = labels, preds if type_ not 'binary' else binary_labels, binary_preds
             f1 = f1_score(y_true, y_pred, mode=mode, average='macro')
             res['_'.join('f1', type_, mode)] = f1
 
-    res['accuracy'] = accuracy_score(labels, preds, mode='strict') # for the sake of visibility, compute only 1 accuracy
-
-    labels = [item for sublist in labels for item in sublist]  # flatten
-    preds = [item for sublist in preds for item in sublist]
-    res['_'.join('f1', 'token', 'multiclass')] = sk_f1_score(labels, preds)
-
-    binary_labels = [item for sublist in binary_labels for item in sublist]  # flatten
-    binary_preds = [item for sublist in binary_preds for item in sublist]
-    res['_'.join('f1', 'token', 'binary')] = sk_f1_score(binary_labels, binary_preds)
+        y_true = [item for sublist in y_true for item in sublist]  # flatten
+        y_pred = [item for sublist in y_pred for item in sublist]
+        res['_'.join('f1', 'token', type_)] = sk_f1_score(labels, preds)
 
     return res
