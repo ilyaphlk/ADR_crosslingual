@@ -156,7 +156,7 @@ class VarianceSampler(BaseUncertaintySampler):
     def _calculate_variances(self, probs):
         # probs.shape = (T, N, C)
         E = probs.mean(dim=0)  # shape = (N, C)
-        Means = torch.diag(E.T @ E)  # shape = (N,)
+        Means = torch.diag(E @ E.T)  # shape = (N,)
         P = probs @ probs.transpose(1, 2)  # shape = (T, N, N)
         P = P[:, np.arange(P.size(1)), np.arange(P.size(1))]  # shape = (T, N) - taking diagonals in a batch
         Vars = (P - Means).mean(dim=0)
