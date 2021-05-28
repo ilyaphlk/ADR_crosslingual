@@ -106,6 +106,7 @@ class BratDataset(torch.utils.data.Dataset):
                                                      self.tokenizer.sep_token_id)
 
         text_tokens = [token.token for token in document._tokens][:510]
+        encoded_text = {}
         encoded_text['input_ids'] = ([preceding_token_id] + 
                                      self.tokenizer.convert_tokens_to_ids(text_tokens) +
                                      [trailing_token_id])
