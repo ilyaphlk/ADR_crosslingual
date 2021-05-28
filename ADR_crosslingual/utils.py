@@ -6,6 +6,7 @@ import time
 import datetime
 from seqeval.metrics import f1_score
 from seqeval.metrics import accuracy_score
+from sklearn.metrics import f1_score as sk_f1_score
 from dataclasses import dataclass
 
 
@@ -63,13 +64,35 @@ def compute_metrics(labels, preds, original_lens, int2label):
     # we are only intrested in metrics for non-pad tokens
     # so we must filter them out first
 
-    labels = [list(map(lambda x: int2label[x], doc)) for doc in unpack(labels, original_lens)]
-    preds = [list(map(lambda x: int2label[x], doc)) for doc in unpack(preds, original_lens)]
+    label_ids = unpack(labels, original_lens) # list of (list of true labels for doc)
+    preds_ids = unpack(preds, original_lens)
 
-    f1 = f1_score(labels, preds)
-    acc = accuracy_score(labels, preds)
+    labels = [list(map(lambda x: int2label[x], doc)) for doc in label_ids]
+    preds = [list(map(lambda x: int2label[x], doc)) for doc in preds_ids]
 
-    return {
-        'accuracy': acc,
-        'f1': f1,
-    }
+    f = lambda token: token if 'ADR' in token else 'O'
+    binary_labels = [list(map(f, doc)) for doc in labels]
+    binary_preds = [list(map(f, doc)) for doc in labels]
+
+    modes = ['default', 'strict']
+    types = ['multiclass', 'binary']
+
+    res = {}
+    
+    for type_ in types:
+        for mode in modes:
+            y_true, y_pred = labels, preds if type_ not 'binary' else binary_labels, binary_preds
+            f1 = f1_score(y_true, y_pred, mode=mode, average='macro')
+            res['_'.join('f1', type_, mode)] = f1
+
+    res['accuracy'] = accuracy_score(labels, preds, mode='strict') # for the sake of visibility, compute only 1 accuracy
+
+    labels = [item for sublist in labels for item in sublist]  # flatten
+    preds = [item for sublist in preds for item in sublist]
+    res['_'.join('f1', 'token', 'multiclass')] = sk_f1_score(labels, preds)
+
+    binary_labels = [item for sublist in binary_labels for item in sublist]  # flatten
+    binary_preds = [item for sublist in binary_preds for item in sublist]
+    res['_'.join('f1', 'token', 'binary')] = sk_f1_score(binary_labels, binary_preds)
+
+    return res
