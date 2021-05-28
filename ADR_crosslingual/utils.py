@@ -82,13 +82,13 @@ def compute_metrics(labels, preds, original_lens, int2label):
     res['accuracy'] = accuracy_score(labels, preds, mode='strict') # for the sake of visibility, compute only 1 accuracy
     
     for type_ in types:
-        y_true, y_pred = labels, preds if type_ not 'binary' else binary_labels, binary_preds
+        (y_true, y_pred) = (labels, preds) if (type_ != 'binary') else (binary_labels, binary_preds)
         for mode in modes:
             f1 = f1_score(y_true, y_pred, mode=mode, average='macro')
             res['_'.join('f1', type_, mode)] = f1
 
         y_true = [item for sublist in y_true for item in sublist]  # flatten
         y_pred = [item for sublist in y_pred for item in sublist]
-        res['_'.join('f1', 'token', type_)] = sk_f1_score(labels, preds)
+        res['_'.join('f1', 'token', type_)] = sk_f1_score(labels, preds, average='macro')
 
     return res
