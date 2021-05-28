@@ -125,6 +125,11 @@ class EntropySampler(BaseUncertaintySampler):
         return entropies.float().mean()
 
 
+class RandomSampler(BaseUncertaintySampler):
+    def _calculate_uncertainty_score(self, probs):
+        return np.random.normal()
+
+
 class BALDSampler(BaseUncertaintySampler):
     def __init__(self, strategy, n_samples_out, n_forward_passes):
         super().__init__(strategy, n_samples_out)
@@ -145,4 +150,14 @@ class VarianceSampler(BaseUncertaintySampler):
         self.stochastic = True
 
     def _calculate_uncertainty_score(self, probs):
-        pass
+        Vars = self._calculate_variances(probs)
+        return Vars.mean()
+
+    def _calculate_variances(self, probs):
+        # probs.shape = (T, N, C)
+        E = probs.mean(dim=0)  # shape = (N, C)
+        Means = torch.diag(E.T @ E)  # shape = (N,)
+        P = probs @ probs.transpose(1, 2)  # shape = (T, N, N)
+        P = P[:, np.arange(P.size(1)), np.arange(P.size(1))]  # shape = (T, N) - taking diagonals in a batch
+        Vars = (P - Means).mean(dim=0)
+        return Vars
