@@ -36,14 +36,6 @@ class BratDataset(torch.utils.data.Dataset):
                 sentences.extend(doc.sentences)
             self.documents = sentences
 
-        self.random_state = random_state
-        if random_state is not None:
-            np.random.seed(random_state)
-
-        self.shuffle = shuffle
-        if shuffle:
-            np.random.shuffle(self.documents)
-
         self.tokenizer = tokenizer
         self.labeled = labeled
 
@@ -56,6 +48,15 @@ class BratDataset(torch.utils.data.Dataset):
                     self.labels.extend(dataset.labels)
 
             self.set_label_info(label2int)
+
+
+        self.random_state = random_state
+        if random_state is not None:
+            np.random.seed(random_state)
+
+        self.shuffle = shuffle
+        if shuffle:
+            np.random.shuffle(self.documents)
             
 
     def set_label_info(self, label2int):
