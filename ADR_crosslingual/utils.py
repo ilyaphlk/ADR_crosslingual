@@ -79,7 +79,7 @@ def compute_metrics(labels, preds, original_lens, int2label):
 
     res = {}
 
-    res['accuracy'] = accuracy_score(labels, preds, mode='strict') # for the sake of visibility, compute only 1 accuracy
+    res['accuracy'] = accuracy_score(labels, preds) # for the sake of visibility, compute only 1 accuracy
     
     for type_ in types:
         (y_true, y_pred) = (labels, preds) if (type_ != 'binary') else (binary_labels, binary_preds)
