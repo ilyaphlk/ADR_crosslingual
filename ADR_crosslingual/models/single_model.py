@@ -134,6 +134,7 @@ class XLMTokenClassifier(XLMPreTrainedModel):
         head_mask=None,
         inputs_embeds=None,
         labels=None,
+        teacher_logits=None,
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
