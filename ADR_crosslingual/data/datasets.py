@@ -58,8 +58,9 @@ class BratDataset(torch.utils.data.Dataset):
         if shuffle:
             rng_state = np.random.get_state()
             np.random.shuffle(self.documents)
-            np.random.set_state(rng_state)
-            np.random.shuffle(self.labels)
+            if self.labeled:
+                np.random.set_state(rng_state)
+                np.random.shuffle(self.labels)
             
 
 
