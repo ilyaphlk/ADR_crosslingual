@@ -4,7 +4,6 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from transformers import (
     BertPreTrainedModel, BertModel,
-    RobertaPreTrainedModel,
     XLMPreTrainedModel, XLMModel,
 )
 
