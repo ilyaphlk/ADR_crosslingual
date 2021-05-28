@@ -85,10 +85,10 @@ def compute_metrics(labels, preds, original_lens, int2label):
         (y_true, y_pred) = (labels, preds) if (type_ != 'binary') else (binary_labels, binary_preds)
         for mode in modes:
             f1 = f1_score(y_true, y_pred, mode=mode, average='macro')
-            res['_'.join('f1', type_, mode)] = f1
+            res['_'.join(['f1', type_, mode])] = f1
 
         y_true = [item for sublist in y_true for item in sublist]  # flatten
         y_pred = [item for sublist in y_pred for item in sublist]
-        res['_'.join('f1', 'token', type_)] = sk_f1_score(labels, preds, average='macro')
+        res['_'.join(['f1', 'token', type_])] = sk_f1_score(y_true, y_pred, average='macro')
 
     return res
