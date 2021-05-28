@@ -56,8 +56,12 @@ class BratDataset(torch.utils.data.Dataset):
 
         self.shuffle = shuffle
         if shuffle:
+            rng_state = numpy.random.get_state()
             np.random.shuffle(self.documents)
+            np.random.set_state(rng_state)
+            np.random.shuffle(self.labels)
             
+
 
     def set_label_info(self, label2int):
         self.label_set = set(['UNK'])
