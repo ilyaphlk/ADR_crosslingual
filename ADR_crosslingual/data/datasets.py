@@ -100,9 +100,11 @@ class BratDataset(torch.utils.data.Dataset):
         # do it manually, I guess
         preceding_token_id, trailing_token_id = None, None
         if isinstance(self.tokenizer, BertTokenizer):
-            preceding_token_id, trailing_token_id = tokenizer.cls_token_id, tokenizer.sep_token_id
+            preceding_token_id, trailing_token_id = (self.tokenizer.cls_token_id,
+                                                     self.tokenizer.sep_token_id)
         if isinstance(self.tokenizer, XLMTokenizer):
-            preceding_token_id, trailing_token_id = tokenizer.bos_token_id, tokenizer.sep_token_id
+            preceding_token_id, trailing_token_id = (self.tokenizer.bos_token_id,
+                                                     self.tokenizer.sep_token_id)
 
         text_tokens = [token.token for token in document._tokens][:510]
         encoded_text['input_ids'] = [preceding_token_id]+tokenizer.convert_tokens_to_ids(text_tokens)+[trailing_token_id]
