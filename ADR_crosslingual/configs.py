@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
 from transformers import (
-    BertTokenizer, BertConfig, BertPreTrainedModel, BertModel,
+    BertTokenizer, BertConfig, BertModel,
     AdamW,
-
 )
+
+from ADR_crosslingual.models.single_model import BertTokenClassifier, XLMTokenClassifier
 
 
 class TrainConfig:
@@ -12,8 +13,7 @@ class TrainConfig:
         model_type={
             'tokenizer':BertTokenizer,
             'config':BertConfig,
-            'pretrained':BertPreTrainedModel,
-            'model':BertModel,
+            'model':BertTokenClassifier,
             'subword_prefix': '##'
         },
         optimizer_class=AdamW,
