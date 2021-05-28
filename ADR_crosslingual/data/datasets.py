@@ -4,6 +4,7 @@ import sys
 import torch
 import numpy as np
 from NLPDatasetIO.dataset import Dataset
+from transformers import BertTokenizer, XLMTokenizer
 
 
 class BratDataset(torch.utils.data.Dataset):
@@ -82,7 +83,6 @@ class BratDataset(torch.utils.data.Dataset):
 
 
     def __len__(self):
-
         return len(self.documents)
 
 
@@ -92,7 +92,25 @@ class BratDataset(torch.utils.data.Dataset):
             idx = idx.tolist()
 
         document = self.documents[idx]
-        encoded_text = self.tokenizer.encode_plus(document.text, max_length=512)
+
+        
+        #encoded_text = self.tokenizer.encode_plus(document.text, max_length=512)
+        #can't use that robustly because of how NLPDatasetIO works
+
+        # do it manually, I guess
+        preceding_token_id, trailing_token_id = None, None
+        if isinstance(self.tokenizer, BertTokenizer):
+            preceding_token_id, trailing_token_id = tokenizer.cls_token_id, tokenizer.sep_token_id
+        if isinstance(self.tokenizer, XLMTokenizer):
+            preceding_token_id, trailing_token_id = tokenizer.bos_token_id, tokenizer.sep_token_id
+
+        text_tokens = [token.token for token in document._tokens][:510]
+        encoded_text['input_ids'] = [preceding_token_id]+tokenizer.convert_tokens_to_ids(text_tokens)+[trailing_token_id]
+        encoded_text['token_type_ids'] = torch.zeros(len(encoded_text['input_ids']))
+        encoded_text['attention_mask'] = torch.ones(len(encoded_text['input_ids']))
+
+
+
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
 
         if self.labeled:
