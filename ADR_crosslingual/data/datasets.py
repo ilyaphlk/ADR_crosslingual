@@ -110,8 +110,8 @@ class BratDataset(torch.utils.data.Dataset):
         encoded_text['input_ids'] = ([preceding_token_id] + 
                                      self.tokenizer.convert_tokens_to_ids(text_tokens) +
                                      [trailing_token_id])
-        encoded_text['token_type_ids'] = torch.zeros(len(encoded_text['input_ids']))
-        encoded_text['attention_mask'] = torch.ones(len(encoded_text['input_ids']))
+        encoded_text['token_type_ids'] = torch.zeros(len(encoded_text['input_ids'])).long()
+        encoded_text['attention_mask'] = torch.ones(len(encoded_text['input_ids'])).long()
 
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
 
