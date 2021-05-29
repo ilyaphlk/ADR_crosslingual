@@ -72,7 +72,7 @@ def compute_metrics(labels, preds, original_lens, int2label):
 
     f = lambda token: token if 'ADR' in token else 'O'
     binary_labels = [list(map(f, doc)) for doc in labels]
-    binary_preds = [list(map(f, doc)) for doc in labels]
+    binary_preds = [list(map(f, doc)) for doc in preds]
 
     modes = ['default', 'strict']
     types = ['multiclass', 'binary']
