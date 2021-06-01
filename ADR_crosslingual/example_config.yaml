@@ -40,3 +40,4 @@ exp_config:
   experiment_name: 'exp 40 shot, bert -> bert'
   seed: 42
   teacher_set: 'cadec'
+  student_set: 'small'
