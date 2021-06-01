@@ -377,7 +377,7 @@ def train_teacher(exp_config, device,
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 
 
-def make_student(exp_config, device, student_sets, checkpoint_path=None):
+def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint_path=None):
     student_config = exp_config.student_config
     sampler_config = exp_config.sampler_config
 
@@ -560,9 +560,11 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
         'small': (rudrec_unlabeled_set, rudrec_test_set),
     }
 
+    teacher_train_set = teacher_sets[exp_config.teacher_set][0]
+
     (student_model, student_optimizer, last_successful_epoch,
     student_unlabeled_dataloader, student_test_dataloader,
-    sampler) = make_student(exp_config, device, student_sets, student_path)
+    sampler) = make_student(exp_config, device, student_sets, teacher_train_set, student_path)
 
     ############################
     # train student
