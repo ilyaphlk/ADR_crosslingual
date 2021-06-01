@@ -120,11 +120,11 @@ def read_yaml_config(path_to_yaml):
 
     teacher_config = TrainConfig(
         model_type={
-            'tokenizer': eval(t_cfg['model_type']['tokenizer'])#BertTokenizer,
+            'tokenizer': eval(t_cfg['model_type']['tokenizer']),
             'config': eval(t_cfg['model_type']['config']),
             'model': eval(t_cfg['model_type']['model']),
             'subword_prefix': t_cfg['model_type'].get('subword_prefix', None),
-            'subword_suffix': t_cfg['model_type'].get('subword_suffix', None)
+            'subword_suffix': t_cfg['model_type'].get('subword_suffix', None),
         },
         model_checkpoint=t_cfg['model_checkpoint'],
         optimizer_class=eval(t_cfg['optimizer_class']),
@@ -137,7 +137,7 @@ def read_yaml_config(path_to_yaml):
 
     student_config = TrainConfig(
         model_type={
-            'tokenizer': eval(st_cfg['model_type']['tokenizer'])#BertTokenizer,
+            'tokenizer': eval(st_cfg['model_type']['tokenizer']),
             'config': eval(st_cfg['model_type']['config']),
             'model': eval(st_cfg['model_type']['model']),
             'subword_prefix': st_cfg['model_type'].get('subword_prefix', None),
