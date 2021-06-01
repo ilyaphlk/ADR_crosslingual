@@ -1,5 +1,4 @@
 import os
-import yaml
 import random
 import numpy as np
 import torch
@@ -11,7 +10,6 @@ from seqeval.metrics import f1_score
 from seqeval.metrics import accuracy_score
 from sklearn.metrics import f1_score as sk_f1_score
 from dataclasses import dataclass
-from ADR_crosslingual.configs import TrainConfig, SamplerConfig, ExperimentConfig
 
 
 def collate_dicts(samples, pad_id=0, return_lens=True):
@@ -108,73 +106,6 @@ def get_cur_labeled_loaders(cur_labeled_set, batch_size):
     teacher_loader = DataLoader(batch, batch_size=batch_size, collate_fn=collate_teacher)
 
     return teacher_loader, student_loader
-
-
-
-def read_yaml_config(path_to_yaml):
-    with open(path_to_yaml) as cfg_yaml:
-        cfg = yaml.load(cfg_yaml, Loader=yaml.FullLoader)
-        t_cfg = cfg['teacher_config']
-        st_cfg = cfg['student_config']
-        spl_cfg = cfg['sampler_config']
-        exp_cfg = cfg['exp_config']
-
-    teacher_config = TrainConfig(
-        model_type={
-            'tokenizer': eval(t_cfg['model_type']['tokenizer']),
-            'config': eval(t_cfg['model_type']['config']),
-            'model': eval(t_cfg['model_type']['model']),
-            'subword_prefix': t_cfg['model_type'].get('subword_prefix', None),
-            'subword_suffix': t_cfg['model_type'].get('subword_suffix', None),
-        },
-        model_checkpoint=t_cfg['model_checkpoint'],
-        optimizer_class=eval(t_cfg['optimizer_class']),
-        optimizer_kwargs={'lr':float(t_cfg['optimizer_kwargs']['lr']),
-                          'eps':float(t_cfg['optimizer_kwargs']['eps'])},
-        train_batch_sz=t_cfg['train_batch_sz'],
-        test_batch_sz=t_cfg['test_batch_sz'],
-        epochs=t_cfg['epochs']
-    )
-
-    student_config = TrainConfig(
-        model_type={
-            'tokenizer': eval(st_cfg['model_type']['tokenizer']),
-            'config': eval(st_cfg['model_type']['config']),
-            'model': eval(st_cfg['model_type']['model']),
-            'subword_prefix': st_cfg['model_type'].get('subword_prefix', None),
-            'subword_suffix': st_cfg['model_type'].get('subword_suffix', None)
-        },
-        model_checkpoint=st_cfg['model_checkpoint'],
-        optimizer_class=eval(st_cfg['optimizer_class']),
-        optimizer_kwargs={'lr':float(st_cfg['optimizer_kwargs']['lr']),
-                          'eps':float(st_cfg['optimizer_kwargs']['eps'])},
-        train_batch_sz=st_cfg['train_batch_sz'],
-        test_batch_sz=st_cfg['test_batch_sz'],
-        epochs=st_cfg['epochs']
-    )
-
-    sampler_config = SamplerConfig(
-        sampler_class=eval(spl_cfg['sampler_class']),#BALDSampler,#RandomSampler,
-        sampler_kwargs={'strategy':spl_cfg['sampler_kwargs']['strategy'],
-                        'n_samples_out':spl_cfg['sampler_kwargs'].get('n_samples_out', student_config.train_batch_sz),},
-        n_samples_in= spl_cfg['n_samples_in'],
-    )
-
-    if 'n_forward_passes' in spl_cfg['sampler_kwargs']:
-        sampler_config.sampler_kwargs['n_forward_passes'] = spl_cfg['sampler_kwargs']['n_forward_passes']
-
-    exp_config = ExperimentConfig(
-        teacher_config=teacher_config,
-        student_config=student_config,
-        sampler_config=sampler_config,
-        n_few_shot=exp_cfg['n_few_shot'],
-        experiment_name=exp_cfg['experiment_name'],
-        seed=exp_cfg['seed'],
-        teacher_set=exp_cfg['teacher_set']
-    )
-
-    return exp_config
-
 
 
 def compute_metrics(labels, preds, original_lens, int2label):
