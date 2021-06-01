@@ -290,11 +290,14 @@ def make_joined(exp_config,
                 cadec_train_set, cadec_test_set,
                 psytar_train_set, psytar_test_set):
 
-    joined_train_set = BratDataset(None, "train", None,
+    teacher_config = exp_config.teacher_config
+    teacher_tokenizer = teacher_config.model_type['tokenizer'].from_pretrained(teacher_config.model_checkpoint)
+
+    joined_train_set = BratDataset(None, "train", teacher_tokenizer,
                                    kwargsDataset={}, random_state=exp_config.seed, shuffle=True,
                                    datasets_iter=[cadec_train_set, psytar_train_set])
 
-    joined_test_set = BratDataset(None, "test", None,
+    joined_test_set = BratDataset(None, "test", teacher_tokenizer,
                              label2int=joined_train_set.label2int,
                              kwargsDataset={}, random_state=exp_config.seed, shuffle=True,
                              datasets_iter=[cadec_test_set, psytar_test_set])
