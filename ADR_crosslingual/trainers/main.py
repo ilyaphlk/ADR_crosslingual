@@ -141,6 +141,7 @@ def make_cadec(folds_dir, exp_config):
 
 def make_psytar(folds_dir, exp_config, batched=True):
     teacher_config = exp_config.teacher_config
+    teacher_tokenizer = teacher_config.model_type['tokenizer'].from_pretrained(teacher_config.model_checkpoint)
     psytar_folds_dir = '/content/ADR_crosslingual/psytarpreprocessor/data/all/'
     conlllike_dict = {'format':'conll', 'sep':'\t'}
     conll_train_docs = NLPDatasetIO.dataset.Dataset(location=psytar_folds_dir+'train.txt',
