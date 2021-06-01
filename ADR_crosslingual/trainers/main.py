@@ -100,6 +100,7 @@ def read_yaml_config(path_to_yaml):
         experiment_name=exp_cfg['experiment_name'],
         seed=exp_cfg['seed'],
         teacher_set=exp_cfg['teacher_set']
+        student_set=exp_cfg['student_set']
     )
 
     return exp_config
@@ -169,7 +170,7 @@ def make_psytar(folds_dir, exp_config, batched=True):
         train_fold_dir += '_batched'
         test_fold_dir += '_batched'
 
-
+    teacher_tokenizer = teacher_config.model_type['tokenizer'].from_pretrained(teacher_config.model_checkpoint)
     psytar_train_set = BratDataset(train_fold_dir, "train", teacher_tokenizer,
                          kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
@@ -226,7 +227,7 @@ def make_rudrec(folds_dir, exp_config):
     return rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set
 
 
-def make_mappers():
+def make_mappers(exp_config):
     if exp_config.classification_type == 'binary':
         raise NotImplementedError
     else:
@@ -254,15 +255,15 @@ def make_mappers():
 
 
 
-def unify_data(rudrec_to_cadec, psytar_to_cadec):
-
+def unify_data(rudrec_to_cadec, psytar_to_cadec, cadec_train_set,
+               rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set,
+               psytar_train_set, psytar_test_set):
 
     map_labels(rudrec_labeled_set, rudrec_to_cadec, cadec_train_set.label2int)
     map_labels(rudrec_test_set, rudrec_to_cadec, cadec_train_set.label2int)
 
     map_labels(psytar_train_set, psytar_to_cadec, cadec_train_set.label2int)
     map_labels(psytar_test_set, psytar_to_cadec, cadec_train_set.label2int)
-
 
     # dirty hack, remove in the future
     rudrec_unlabeled_set.label2int = rudrec_labeled_set.label2int
@@ -271,7 +272,9 @@ def unify_data(rudrec_to_cadec, psytar_to_cadec):
 
 
 
-def make_joined():
+def make_joined(exp_config,
+                cadec_train_set, cadec_test_set,
+                psytar_train_set, psytar_test_set):
 
     joined_train_set = BratDataset(None, "train", None,
                                    kwargsDataset={}, random_state=exp_config.seed, shuffle=True,
@@ -290,18 +293,12 @@ def make_joined():
     return joined_train_set, joined_test_set
 
 
-def make_teacher(checkpoint_path=None):
+def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
     last_successful_epoch = -1
     teacher_config = exp_config.teacher_config
-    
+    teacher_tokenizer = teacher_config.model_type['tokenizer'].from_pretrained(teacher_config.model_checkpoint)
 
     collate_teacher = lambda x: collate_dicts_(x, pad_id=teacher_tokenizer.pad_token_id)
-
-    teacher_sets = {
-        'cadec': (cadec_train_set, cadec_test_set),
-        'psytar': (psytar_train_set, psytar_test_set),
-        'joined': (joined_train_set, joined_test_set),
-    }
 
     teacher_train_set, teacher_test_set = teacher_sets[exp_config.teacher_set]
 
@@ -333,10 +330,14 @@ def make_teacher(checkpoint_path=None):
     )
 
 
-    return teacher_model, teacher_optimizer, last_successful_epoch, teacher_train_dataloader, teacher_test_dataloader
+    return (teacher_model, teacher_optimizer, last_successful_epoch,
+        teacher_train_dataloader, teacher_test_dataloader)
 
 
-def train_teacher():
+def train_teacher(exp_config, device,
+                teacher_model, teacher_optimizer, last_successful_epoch,
+                teacher_train_dataloader, teacher_test_dataloader,
+                writer):
     teacher_config = exp_config.teacher_config
 
     total_t0 = time.time()
@@ -359,19 +360,23 @@ def train_teacher():
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 
 
-def make_student(checkpoint_path=None):
+def make_student(exp_config, device, student_sets, checkpoint_path=None):
+    student_config = exp_config.student_config
+    sampler_config = exp_config.sampler_config
 
     collate_student = lambda x: collate_dicts_(x, pad_id=student_tokenizer.pad_token_id)
 
+    unlabeled_set, test_set = student_sets[exp_config.student_set]
+
     student_unlabeled_dataloader = DataLoader(
-        rudrec_unlabeled_set,
+        unlabeled_set,
         batch_size=sampler_config.n_samples_in,  # feed batches to sampler, sampler reduces them to n_samples_out <= train_batch_sz
         collate_fn=collate_student,
         shuffle = True  # reshuffle unlabeled samples every epoch
     )
 
     student_test_dataloader = DataLoader(
-        rudrec_test_set,
+        test_set,
         batch_size=student_config.test_batch_sz,
         collate_fn=collate_student
     )
@@ -402,7 +407,12 @@ def make_student(checkpoint_path=None):
         student_unlabeled_dataloader, student_test_dataloader, sampler)
 
 
-def train_student():
+def train_student(exp_config, device, last_successful_epoch,
+                  teacher_args, student_args,
+                  sampler, writer, rudrec_labeled_set):
+
+    student_config = exp_config.student_config
+
     total_t0 = time.time()
 
     cur_labeled_set = []
@@ -412,12 +422,15 @@ def train_student():
         student_config.train_batch_sz
     )
 
+    (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader) = teacher_args
+    (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader) = student_args
+
     for epoch_i in range(last_successful_epoch + 1, student_config.epochs):
 
         print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, student_config.epochs))
 
         if exp_config.n_few_shot > 0:
-            teacher_labeled_loader, student_labeled_loader = get_cur_labeled_loaders(cur_labeled_set, rudrec_labeled_b_sz)
+            teacher_labeled_loader, student_labeled_loader = get_cur_labeled_loaders(cur_labeled_set, rudrec_labeled_b_sz, rudrec_labeled_set)
 
         if exp_config.n_few_shot > 0:
             # first make a step with teacher for labeled samples
@@ -473,15 +486,19 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
     ### make sure the labels are consistent
     ############################
 
-    rudrec_to_cadec, psytar_to_cadec = make_mappers()
+    rudrec_to_cadec, psytar_to_cadec = make_mappers(exp_config)
 
-    unify_data()
+    unify_data(rudrec_to_cadec, psytar_to_cadec, cadec_train_set,
+               rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set,
+               psytar_train_set, psytar_test_set)
 
     ############################
     # make a joined set
     ############################
 
-    joined_train_set, joined_test_set = make_joined()
+    joined_train_set, joined_test_set = make_joined(exp_config,
+                cadec_train_set, cadec_test_set,
+                psytar_train_set, psytar_test_set)
     ############################
     # configure teacher
     ############################
@@ -495,8 +512,16 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
         print('No GPU available, using the CPU instead.')
         device = torch.device("cpu")    
 
+
+    teacher_sets = {
+        'cadec': (cadec_train_set, cadec_test_set),
+        'psytar': (psytar_train_set, psytar_test_set),
+        'joined': (joined_train_set, joined_test_set),
+    }
+
+
     (teacher_model, teacher_optimizer, last_successful_epoch,
-    teacher_train_dataloader, teacher_test_dataloader) = make_teacher(teacher_path)
+    teacher_train_dataloader, teacher_test_dataloader) = make_teacher(exp_config, device, teacher_sets, teacher_path)
 
     ############################
     ############ train a teacher
@@ -505,18 +530,30 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
     writer = SummaryWriter(log_dir=os.path.join('runs', exp_config.experiment_name))
     writer.add_text('experiment_info', str(exp_config))
 
-    train_teacher()
+    train_teacher(exp_config, device,
+                teacher_model, teacher_optimizer, last_successful_epoch,
+                teacher_train_dataloader, teacher_test_dataloader,
+                writer)
 
     ############################
     # make a student
     ############################
 
+    student_sets = {
+        'small': (rudrec_unlabeled_set, rudrec_test_set),
+    }
+
     (student_model, student_optimizer, last_successful_epoch,
     student_unlabeled_dataloader, student_test_dataloader,
-    sampler) = make_student(student_path)
+    sampler) = make_student(exp_config, device, student_sets, student_path)
 
     ############################
     # train student
     ############################
 
-    train_student()
+    teacher_args = (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader)
+    student_args = (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader)
+
+    train_student(exp_config, device, last_successful_epoch,
+                  teacher_args, student_args,
+                  sampler, writer, rudrec_labeled_set)

@@ -95,7 +95,7 @@ def map_labels(dataset, mapper, label2int=None):
     dataset.set_label_info(label2int)
 
 
-def get_cur_labeled_loaders(cur_labeled_set, batch_size):
+def get_cur_labeled_loaders(cur_labeled_set, batch_size, rudrec_labeled_set):
     N = len(cur_labeled_set)
     batch = []
     for idx in range(N, min(N+batch_size, len(rudrec_labeled_set))):

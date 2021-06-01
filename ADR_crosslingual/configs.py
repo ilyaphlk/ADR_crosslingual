@@ -71,6 +71,7 @@ class ExperimentConfig:
     n_few_shot: int = 0
     common_tokenize: Any = None
     teacher_set: str = "cadec"
+    student_set: str = "small"
 
 
     def __str__(self):
