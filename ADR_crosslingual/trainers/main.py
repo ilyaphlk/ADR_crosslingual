@@ -40,9 +40,6 @@ from ADR_crosslingual.trainers.samplers import (
 )
 
 
-
-
-
 def make_cadec(folds_dir, exp_config):
     teacher_config = exp_config.teacher_config
     cadec_dir = './cadec'
@@ -67,9 +64,9 @@ def make_cadec(folds_dir, exp_config):
                             kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
     for idx, elem in enumerate(cadec_train_set):
-    s = elem['input_ids'].shape
-    for key, t in elem.items():
-        assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
+        s = elem['input_ids'].shape
+        for key, t in elem.items():
+            assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
 
 
     return cadec_train_set, cadec_test_set
@@ -156,9 +153,9 @@ def make_rudrec(folds_dir, exp_config):
                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
     for idx, elem in enumerate(rudrec_test_set):
-    s = elem['input_ids'].shape
-    for key, t in elem.items():
-        assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
+        s = elem['input_ids'].shape
+        for key, t in elem.items():
+            assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
 
     return rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set
 
