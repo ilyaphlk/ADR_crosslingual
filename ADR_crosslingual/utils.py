@@ -11,6 +11,7 @@ from seqeval.metrics import f1_score
 from seqeval.metrics import accuracy_score
 from sklearn.metrics import f1_score as sk_f1_score
 from dataclasses import dataclass
+from ADR_crosslingual.configs import TrainConfig, SamplerConfig, ExperimentConfig
 
 
 def collate_dicts(samples, pad_id=0, return_lens=True):
