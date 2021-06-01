@@ -99,7 +99,7 @@ def read_yaml_config(path_to_yaml):
         n_few_shot=exp_cfg['n_few_shot'],
         experiment_name=exp_cfg['experiment_name'],
         seed=exp_cfg['seed'],
-        teacher_set=exp_cfg['teacher_set']
+        teacher_set=exp_cfg['teacher_set'],
         student_set=exp_cfg['student_set']
     )
 
@@ -119,6 +119,9 @@ def make_cadec(folds_dir, exp_config):
     teacher_tokenizer = teacher_config.model_type['tokenizer'].from_pretrained(teacher_config.model_checkpoint)
     bratlike_dict = {'format':'brat',
                      'tokenize':teacher_tokenizer.tokenize} # todo get tokenize either from common_tokenize or from teacher
+    if exp_config.common_tokenize is not None:
+        bratlike_dict['tokenize'] = exp_config.common_tokenize
+
     bratlike_dict['subword_prefix'] = teacher_config.model_type.get('subword_prefix', None)
     bratlike_dict['subword_suffix'] = teacher_config.model_type.get('subword_suffix', None)
 
@@ -172,6 +175,13 @@ def make_psytar(folds_dir, exp_config, batched=True):
         test_fold_dir += '_batched'
 
     teacher_tokenizer = teacher_config.model_type['tokenizer'].from_pretrained(teacher_config.model_checkpoint)
+    bratlike_dict = {'format':'brat',
+                     'tokenize':teacher_tokenizer.tokenize} # todo get tokenize either from common_tokenize or from teacher
+    if exp_config.common_tokenize is not None:
+        bratlike_dict['tokenize'] = exp_config.common_tokenize
+    bratlike_dict['subword_prefix'] = teacher_config.model_type.get('subword_prefix', None)
+    bratlike_dict['subword_suffix'] = teacher_config.model_type.get('subword_suffix', None)
+    
     psytar_train_set = BratDataset(train_fold_dir, "train", teacher_tokenizer,
                          kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
@@ -206,6 +216,8 @@ def make_rudrec(folds_dir, exp_config):
     student_tokenizer = student_config.model_type['tokenizer'].from_pretrained(student_config.model_checkpoint)
     bratlike_dict = {'format':'brat',
                      'tokenize':student_tokenizer.tokenize}
+    if exp_config.common_tokenize is not None:
+        bratlike_dict['tokenize'] = exp_config.common_tokenize
     bratlike_dict['subword_prefix'] = student_config.model_type.get('subword_prefix', None)
     bratlike_dict['subword_suffix'] = student_config.model_type.get('subword_suffix', None)
 
