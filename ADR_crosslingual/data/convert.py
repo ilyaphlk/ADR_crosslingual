@@ -8,6 +8,7 @@ def webanno2brat(webanno_dir, out_dir):
     os.mkdir(os.path.join(out_dir, "text"))
     os.mkdir(os.path.join(out_dir, "annotation"))
     skipped_counter = 0
+    n_read_files = 0
     for tsv_file in glob(os.path.join(webanno_dir, 'annotation/*/*.tsv')):
         filename = tsv_file.split('/')[-2]
         try:
@@ -38,9 +39,12 @@ def webanno2brat(webanno_dir, out_dir):
                 with open(ann_path, 'w+') as ann_file:
                     ann_file.write(entities)
 
+                n_read_files += 1
+
         except:
             skipped_counter += 1
             print(f"skipping file: {tsv_file}")
 
 
     print(f"Number of skipped files: {skipped_counter}")
+    return n_read_files

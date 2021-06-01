@@ -1,7 +1,10 @@
+import os
+import yaml
 import random
 import numpy as np
 import torch
 from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader
 import time
 import datetime
 from seqeval.metrics import f1_score
@@ -57,6 +60,122 @@ def unpack(batches, original_lens_batches):
     return unpacked
 
 
+def make_brat_pair(documents_iter, fold_dir):
+    entities_list = []
+    texts_list = []
+    offset = 0
+    e_id = 1
+    for document in documents_iter:
+        for entity in document.entities.values():
+            s = "T"+str(e_id)+'\t'
+            s += entity.type + " "
+            s += str(offset + entity.start) + " "
+            s += str(offset + entity.end) + '\t'
+            s += entity.text
+            entities_list.append(s)
+            e_id += 1
+        
+        offset += len(document.text) + 1
+        texts_list.append(document.text)
+        
+
+    doc_id = documents_iter[0].doc_id
+
+    ann_path = os.path.join(fold_dir, "doc"+str(doc_id)+".ann")
+    with open(ann_path, 'w+') as ann_file:
+        ann_file.write("\n".join(entities_list) + "\n")
+
+    txt_path = os.path.join(fold_dir, "doc"+str(doc_id)+".txt")
+    with open(txt_path, 'w+') as txt_file:
+        txt_file.write("\n".join(texts_list) + "\n")
+
+
+def map_labels(dataset, mapper, label2int=None):
+    for idx, doc_labels in enumerate(dataset.labels):
+        dataset.labels[idx] = list(map(lambda s: mapper.get(s, 'UNK'), doc_labels))
+    dataset.set_label_info(label2int)
+
+
+def get_cur_labeled_loaders(cur_labeled_set, batch_size):
+    N = len(cur_labeled_set)
+    batch = []
+    for idx in range(N, min(N+batch_size, len(rudrec_labeled_set))):
+        batch.append(rudrec_labeled_set[idx])
+    cur_labeled_set.extend(batch)
+
+    student_loader = DataLoader(cur_labeled_set, batch_size=batch_size, collate_fn=collate_student)
+    teacher_loader = DataLoader(batch, batch_size=batch_size, collate_fn=collate_teacher)
+
+    return teacher_loader, student_loader
+
+
+
+def read_yaml_config(path_to_yaml):
+    with open(path_to_yaml) as cfg_yaml:
+        cfg = yaml.load(cfg_yaml, Loader=yaml.FullLoader)
+        t_cfg = cfg['teacher_config']
+        st_cfg = cfg['student_config']
+        spl_cfg = cfg['sampler_config']
+        exp_cfg = cfg['exp_config']
+
+    teacher_config = TrainConfig(
+        model_type={
+            'tokenizer': eval(t_cfg['model_type']['tokenizer'])#BertTokenizer,
+            'config': eval(t_cfg['model_type']['config']),
+            'model': eval(t_cfg['model_type']['model']),
+            'subword_prefix': t_cfg['model_type'].get('subword_prefix', None),
+            'subword_suffix': t_cfg['model_type'].get('subword_suffix', None)
+        },
+        model_checkpoint=t_cfg['model_checkpoint'],
+        optimizer_class=eval(t_cfg['optimizer_class']),
+        optimizer_kwargs={'lr':float(t_cfg['optimizer_kwargs']['lr']),
+                          'eps':float(t_cfg['optimizer_kwargs']['eps'])},
+        train_batch_sz=t_cfg['train_batch_sz'],
+        test_batch_sz=t_cfg['test_batch_sz'],
+        epochs=t_cfg['epochs']
+    )
+
+    student_config = TrainConfig(
+        model_type={
+            'tokenizer': eval(st_cfg['model_type']['tokenizer'])#BertTokenizer,
+            'config': eval(st_cfg['model_type']['config']),
+            'model': eval(st_cfg['model_type']['model']),
+            'subword_prefix': st_cfg['model_type'].get('subword_prefix', None),
+            'subword_suffix': st_cfg['model_type'].get('subword_suffix', None)
+        },
+        model_checkpoint=st_cfg['model_checkpoint'],
+        optimizer_class=eval(st_cfg['optimizer_class']),
+        optimizer_kwargs={'lr':float(st_cfg['optimizer_kwargs']['lr']),
+                          'eps':float(st_cfg['optimizer_kwargs']['eps'])},
+        train_batch_sz=st_cfg['train_batch_sz'],
+        test_batch_sz=st_cfg['test_batch_sz'],
+        epochs=st_cfg['epochs']
+    )
+
+    sampler_config = SamplerConfig(
+        sampler_class=eval(spl_cfg['sampler_class']),#BALDSampler,#RandomSampler,
+        sampler_kwargs={'strategy':spl_cfg['sampler_kwargs']['strategy'],
+                        'n_samples_out':spl_cfg['sampler_kwargs'].get('n_samples_out', student_config.train_batch_sz),},
+        n_samples_in= spl_cfg['n_samples_in'],
+    )
+
+    if 'n_forward_passes' in spl_cfg['sampler_kwargs']:
+        sampler_config.sampler_kwargs['n_forward_passes'] = spl_cfg['sampler_kwargs']['n_forward_passes']
+
+    exp_config = ExperimentConfig(
+        teacher_config=teacher_config,
+        student_config=student_config,
+        sampler_config=sampler_config,
+        n_few_shot=exp_cfg['n_few_shot'],
+        experiment_name=exp_cfg['experiment_name'],
+        seed=exp_cfg['seed'],
+        teacher_set=exp_cfg['teacher_set']
+    )
+
+    return exp_config
+
+
+
 def compute_metrics(labels, preds, original_lens, int2label):
     '''
         labels, result, original_lens - each is a list of batched tensors of shape (batch_len, seq_len)
@@ -74,7 +193,7 @@ def compute_metrics(labels, preds, original_lens, int2label):
     binary_labels = [list(map(f, doc)) for doc in labels]
     binary_preds = [list(map(f, doc)) for doc in preds]
 
-    modes = ['default', 'strict']
+    modes = ['strict']
     types = ['multiclass', 'binary']
 
     res = {}

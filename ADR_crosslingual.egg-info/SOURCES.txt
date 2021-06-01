@@ -1,0 +1,17 @@
+ADR_PoC.ipynb
+README.md
+setup.py
+ADR_crosslingual/__init__.py
+ADR_crosslingual/utils.py
+ADR_crosslingual.egg-info/PKG-INFO
+ADR_crosslingual.egg-info/SOURCES.txt
+ADR_crosslingual.egg-info/dependency_links.txt
+ADR_crosslingual.egg-info/top_level.txt
+ADR_crosslingual/data/convert.py
+ADR_crosslingual/data/datasets.py
+ADR_crosslingual/data/splitter.py
+ADR_crosslingual/models/bertTeacher.py
+ADR_crosslingual/models/single_model.py
+ADR_crosslingual/trainers/samplers.py
+ADR_crosslingual/trainers/teacherTrainer.py
+ADR_crosslingual/trainers/trainer.py

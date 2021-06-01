@@ -4,7 +4,7 @@ from torch.utils.tensorboard import SummaryWriter
 from ADR_crosslingual.utils import format_time#, compute_metrics
 
 
-def train(model, dataloader, cur_epoch, device, optimizer,
+def train_model(model, dataloader, cur_epoch, device, optimizer,
           teacher_model=None, sampler=None,
           logging_interval=10, tensorboard_writer=None, tb_postfix=" (train)", print_progress=True,
           compute_metrics=None, int2label=None):
@@ -57,6 +57,18 @@ def train(model, dataloader, cur_epoch, device, optimizer,
 
         loss = result.loss
         total_train_loss += loss.item()
+
+        '''
+        if L2_C > 0:
+            for layer, layer_init in zip(model.bert_like.encoder.named_parameters(),
+                                        model_initial.bert_like.encoder.named_parameters()):
+                encoder_layer_name = layer[0]
+                encoder_layer_number = int(encoder_layer_name.split(".")[1])
+                L2_delta = L2_C * ((layer[1] - layer_init[1])**2).sum() / L2_exp ** (encoder_layer_number + 1)
+                loss += L2_delta
+        '''
+
+
         loss.backward()
 
         preds_batches.append(result.logits.max(-1).indices)
@@ -85,7 +97,7 @@ def train(model, dataloader, cur_epoch, device, optimizer,
     return avg_train_loss, training_time
 
 
-def eval(model, dataloader, cur_epoch, device,
+def eval_model(model, dataloader, cur_epoch, device,
          logging_interval=10, tensorboard_writer=None, tb_postfix=" (test)", print_progress=True,
          compute_metrics=None, int2label=None):
 

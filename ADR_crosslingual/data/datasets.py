@@ -8,7 +8,7 @@ from transformers import BertTokenizer, XLMTokenizer
 
 
 class BratDataset(torch.utils.data.Dataset):
-    def __init__(self, fold_path, fold_type, tokenizer, labeled=True, label2int=None, kwargsDataset={'format':'brat'},
+    def __init__(self, fold_path, fold_type, tokenizer=None, labeled=True, label2int=None, kwargsDataset={'format':'brat'},
                  to_sentences=False, random_state=None, shuffle=False, datasets_iter=None):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files

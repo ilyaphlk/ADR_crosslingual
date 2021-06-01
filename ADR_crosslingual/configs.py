@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from transformers import (
     BertTokenizer, BertConfig, BertModel,
@@ -65,9 +66,10 @@ class ExperimentConfig:
     teacher_config: TrainConfig
     student_config: TrainConfig
     sampler_config: SamplerConfig
-    n_few_shot: int = 0
     experiment_name: str = "sample_exp_name"
     seed: int = 42
+    n_few_shot: int = 0
+    common_tokenize: Any = None
     teacher_set: str = "cadec"
 
 
