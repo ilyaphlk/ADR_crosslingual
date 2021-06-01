@@ -378,6 +378,7 @@ def train_teacher(exp_config, device,
 
 
 def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint_path=None):
+    last_successful_epoch = -1
     student_config = exp_config.student_config
     sampler_config = exp_config.sampler_config
 

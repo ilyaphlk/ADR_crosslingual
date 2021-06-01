@@ -68,7 +68,7 @@ class ExperimentConfig:
     sampler_config: SamplerConfig
     experiment_name: str = "sample_exp_name"
     seed: int = 42
-    n_few_shot: int = 0
+    n_few_shot: int = 4
     common_tokenize: Any = None
     teacher_set: str = "cadec"
     student_set: str = "small"
