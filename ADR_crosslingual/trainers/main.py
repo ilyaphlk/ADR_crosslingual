@@ -100,7 +100,8 @@ def read_yaml_config(path_to_yaml):
         experiment_name=exp_cfg['experiment_name'],
         seed=exp_cfg['seed'],
         teacher_set=exp_cfg['teacher_set'],
-        student_set=exp_cfg['student_set']
+        student_set=exp_cfg.get('student_set', 'small'),
+        classification_type=exp_cfg.get('classification_type', 'multiclass')
     )
 
     return exp_config
