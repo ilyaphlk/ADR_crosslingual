@@ -429,6 +429,7 @@ def train_student(exp_config, device, last_successful_epoch,
                   teacher_args, student_args,
                   sampler, writer, rudrec_labeled_set):
 
+    teacher_config = exp_config.teacher_config
     student_config = exp_config.student_config
 
     total_t0 = time.time()
