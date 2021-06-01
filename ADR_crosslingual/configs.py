@@ -72,6 +72,7 @@ class ExperimentConfig:
     common_tokenize: Any = None
     teacher_set: str = "cadec"
     student_set: str = "small"
+    classification_type: str = "multiclass"
 
 
     def __str__(self):
