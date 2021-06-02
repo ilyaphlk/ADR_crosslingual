@@ -23,9 +23,14 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
 
     model.train()
 
-    original_lens_batches = []
-    labels_batches = []
-    preds_batches = []
+    #original_lens_batches = []
+    #labels_batches = []
+    #preds_batches = []
+    label_ids = []
+    preds_ids = []
+
+    #label_ids = unpack(labels, original_lens) # list of (list of true labels for doc)
+    #preds_ids = unpack(preds, original_lens)
 
     for step, batch in enumerate(dataloader, 1):
 
@@ -35,7 +40,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
 
         del step
 
-        original_lens_batches.append(batch.pop('original_lens', None))
+        original_lens_batch = batch.pop('original_lens', None)
         device = next(model.parameters()).device
 
         # ?TODO explicitly move batch to cpu?
@@ -73,11 +78,14 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         loss.backward()
         del loss
 
-        preds_batches.append(result.logits.max(-1).indices)
-        if 'labels' in batch:
-            labels_batches.append(batch['labels'])
-        else:
-            labels_batches.append(batch['teacher_logits'].max(-1).indices)
+        if original_lens_batch is not None:
+            if 'labels' in batch:
+                label_ids.extend(unpack([batch['labels']], [original_lens_batch]))
+            else:
+                label_ids.extend(unpack([batch['teacher_logits'].max(-1).indices], [original_lens_batch]))
+            preds_ids.extend(unpack([result.logits.max(-1).indices],  [original_lens_batch]))
+
+        del original_lens_batch
 
         optimizer.step()
 
@@ -88,7 +96,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
         if compute_metrics is not None:
             int2label = dataloader.dataset.int2label if int2label is None else int2label
-            metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, int2label)
+            metrics = compute_metrics(label_ids, preds_ids, int2label)
             tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
 
     if print_progress:
@@ -108,22 +116,26 @@ def eval_model(model, dataloader, cur_epoch, device,
 
     total_eval_loss = 0
 
-    original_lens_batches = []
-    labels_batches = []
-    preds_batches = []
+    #original_lens_batches = []
+    #labels_batches = []
+    #preds_batches = []
+
+    label_ids = []
+    preds_ids = []
 
     for batch in dataloader:
         for key, t in batch.items():
             batch[key] = t.to(device) 
-        original_lens_batches.append(batch.pop('original_lens', None))
+        original_lens_batch = batch.pop('original_lens', None)
 
         with torch.no_grad():
             result = model(**batch)
 
             total_eval_loss += float(result.loss)
 
-            preds_batches.append(result.logits.max(-1).indices)
-            labels_batches.append(batch['labels'])
+            label_ids.extend(unpack([batch['labels']], [original_lens_batch]))
+            preds_ids.extend(unpack([result.logits.max(-1).indices], [original_lens_batch]))
+            del original_lens_batch
 
             del result
 
@@ -135,12 +147,8 @@ def eval_model(model, dataloader, cur_epoch, device,
         tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_val_loss, cur_epoch)
         if compute_metrics is not None:
             int2label = dataloader.dataset.int2label if int2label is None else int2label
-            metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, int2label)
+            metrics = compute_metrics(label_ids, preds_ids, int2label)
             tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
-
-    del labels_batches
-    del preds_batches
-    del original_lens_batches
         
     if print_progress:
         print("  Test Loss: {0:.4f}".format(avg_val_loss))
