@@ -64,7 +64,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
                                         model_initial.bert.encoder.named_parameters()):
                 encoder_layer_name = layer[0]
                 encoder_layer_number = int(encoder_layer_name.split(".")[1])
-                L2_delta = L2_C * ((layer[1] - layer_init[1])**2).sum() / L2_exp ** (encoder_layer_number + 1)
+                L2_delta = L2_coef * ((layer[1] - layer_init[1])**2).sum() / L2_exp ** (encoder_layer_number + 1)
                 loss += L2_delta
 
         loss.backward()
