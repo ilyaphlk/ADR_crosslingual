@@ -79,9 +79,12 @@ class ExperimentConfig:
 
 
     def __str__(self):
-        return "\n".join(["experiment_name = "+str(self.experiment_name)+"; ",
-                         "n_few_shot = "+str(self.n_few_shot)+"; ",
+        return "\n".join(["experiment_name = "+str(self.experiment_name)+"; \n",
+                         "n_few_shot = "+str(self.n_few_shot)+"; \n",
                          "teacher_set = "+str(self.teacher_set)+"; \n",
+                         "student_set = "+str(self.student_set)+"; \n",
+                         "common_tokenize = "+str(self.common_tokenize)+"; \n",
+                         "classification_type = "+str(self.classification_type)+"; \n",
                          "teacher:\n"+str(self.teacher_config)+"\n",
                          "student:\n"+str(self.student_config)+"\n",
                          "sampler:\n"+str(self.sampler_config)])
