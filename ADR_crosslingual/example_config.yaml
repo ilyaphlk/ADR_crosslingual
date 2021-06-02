@@ -42,3 +42,4 @@ exp_config:
   seed: 42
   teacher_set: 'cadec'
   student_set: 'small'
+  common_tokenize: word_tokenize
