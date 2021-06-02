@@ -321,13 +321,13 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 
     teacher_train_dataloader = DataLoader(teacher_train_set,
                                           batch_size=teacher_config.train_batch_sz,
-                                          collate_fn=collate_teacher,
-                                          pin_memory=True)
+                                          collate_fn=collate_teacher,)
+                                          #pin_memory=True)
 
     teacher_test_dataloader = DataLoader(teacher_test_set,
                                          batch_size=teacher_config.test_batch_sz,
-                                         collate_fn=collate_teacher,
-                                         pin_memory=True)
+                                         collate_fn=collate_teacher,)
+                                         #pin_memory=True)
 
     set_seed(exp_config.seed)
 
@@ -387,6 +387,7 @@ def train_teacher(exp_config, device,
             'optimizer_state_dict': teacher_optimizer.state_dict(),
         }
         torch.save(teacher_checkpoint_dict, teacher_save_path)
+        del teacher_checkpoint_dict
 
     print("")
     print("Training teacher complete!")
@@ -516,12 +517,16 @@ def train_student(exp_config, device, last_successful_epoch,
         }
         torch.save(student_checkpoint_dict, student_save_path)
 
+        del student_checkpoint_dict
+
         teacher_checkpoint_dict = {
             'epoch': epoch_i,
             'model_state_dict': teacher_model.state_dict(),
             'optimizer_state_dict': teacher_optimizer.state_dict(),
         }
         torch.save(teacher_checkpoint_dict, teacher_save_path)
+
+        del teacher_checkpoint_dict
 
     print("")
     print("Training student complete!")
@@ -613,20 +618,26 @@ def main(path_to_yaml, runs_path,
                 teacher_train_dataloader, teacher_test_dataloader,
                 writer, teacher_save_path)
 
+    '''
     print("\n\nmemory stats:")
     print("total:", torch.cuda.get_device_properties(0).total_memory)
     print("reserved:",torch.cuda.memory_reserved(0))
     print("allocated:",torch.cuda.memory_allocated(0))
+    '''
 
 
     del teacher_train_dataloader
     del teacher_test_dataloader
-    torch.cuda.empty_cache()
+    #torch.cuda.empty_cache()
 
+    print(torch.cuda.memory_summary(0))
+
+    '''
     print("\n\nemptied cache. stats:")
     print("total:", torch.cuda.get_device_properties(0).total_memory)
     print("reserved:",torch.cuda.memory_reserved(0))
     print("allocated:",torch.cuda.memory_allocated(0))
+    '''
 
 
     ############################
