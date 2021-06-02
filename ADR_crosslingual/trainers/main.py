@@ -395,6 +395,8 @@ def train_teacher(exp_config, device,
         torch.save(teacher_checkpoint_dict, teacher_save_path)
         del teacher_checkpoint_dict
 
+    del model_initial
+
     print("")
     print("Training teacher complete!")
 
