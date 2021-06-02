@@ -381,6 +381,7 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
     last_successful_epoch = -1
     student_config = exp_config.student_config
     sampler_config = exp_config.sampler_config
+    student_tokenizer = student_config.model_type['tokenizer'].from_pretrained(student_config.model_checkpoint)
 
     collate_student = lambda x: collate_dicts_(x, pad_id=student_tokenizer.pad_token_id)
 
