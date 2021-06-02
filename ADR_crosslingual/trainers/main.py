@@ -370,7 +370,8 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 def train_teacher(exp_config, device,
                 teacher_model, teacher_optimizer, last_successful_epoch,
                 teacher_train_dataloader, teacher_test_dataloader,
-                writer, teacher_save_path):
+                writer, teacher_save_path,
+                teacher_test_dataloader_cadec, teacher_test_dataloader_psytar):
     teacher_config = exp_config.teacher_config
 
     model_initial = None
@@ -388,17 +389,26 @@ def train_teacher(exp_config, device,
               compute_metrics=compute_metrics, model_initial=model_initial, L2_coef=teacher_config.L2_coef)
         
         eval_model(teacher_model, teacher_test_dataloader, epoch_i, device,
-             logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, source language)',
+             logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, joined)',
              compute_metrics=compute_metrics)
 
-        teacher_checkpoint_dict = {
-            'epoch': epoch_i,
-            'model_state_dict': teacher_model.state_dict(),
-            'optimizer_state_dict': teacher_optimizer.state_dict(),
-        }
+        eval_model(teacher_model, teacher_test_dataloader_cadec, epoch_i, device,
+             logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, cadec)',
+             compute_metrics=compute_metrics)
+
+        eval_model(teacher_model, teacher_test_dataloader_psytar, epoch_i, device,
+             logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, psytar)',
+             compute_metrics=compute_metrics)
+
+        
         if teacher_save_path is not None:
+            teacher_checkpoint_dict = {
+                'epoch': epoch_i,
+                'model_state_dict': teacher_model.state_dict(),
+                'optimizer_state_dict': teacher_optimizer.state_dict(),
+            }
             torch.save(teacher_checkpoint_dict, teacher_save_path)
-        del teacher_checkpoint_dict
+            del teacher_checkpoint_dict
 
     del model_initial
 
@@ -521,27 +531,27 @@ def train_student(exp_config, device, last_successful_epoch,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (student, test, rudrec)',
              compute_metrics=compute_metrics)
 
-
-        student_checkpoint_dict = {
-            'epoch': epoch_i,
-            'model_state_dict': student_model.state_dict(),
-            'optimizer_state_dict': student_optimizer.state_dict(),
-            'cur_labeled_set': cur_labeled_set
-        }
+        
         if student_save_path is not None:
+            student_checkpoint_dict = {
+                'epoch': epoch_i,
+                'model_state_dict': student_model.state_dict(),
+                'optimizer_state_dict': student_optimizer.state_dict(),
+                'cur_labeled_set': cur_labeled_set
+            }
             torch.save(student_checkpoint_dict, student_save_path)
 
-        del student_checkpoint_dict
+            del student_checkpoint_dict
 
-        teacher_checkpoint_dict = {
-            'epoch': epoch_i,
-            'model_state_dict': teacher_model.state_dict(),
-            'optimizer_state_dict': teacher_optimizer.state_dict(),
-        }
         if teacher_save_path is not None:
+            teacher_checkpoint_dict = {
+                'epoch': epoch_i,
+                'model_state_dict': teacher_model.state_dict(),
+                'optimizer_state_dict': teacher_optimizer.state_dict(),
+            }
             torch.save(teacher_checkpoint_dict, teacher_save_path)
 
-        del teacher_checkpoint_dict
+            del teacher_checkpoint_dict
 
     print("")
     print("Training student complete!")
@@ -586,14 +596,15 @@ def main(path_to_yaml, runs_path,
                psytar_train_set, psytar_test_set)
 
     ############################
-    # make a joined set
+    ########## make a joined set
     ############################
 
     joined_train_set, joined_test_set = make_joined(exp_config,
                 cadec_train_set, cadec_test_set,
                 psytar_train_set, psytar_test_set)
+
     ############################
-    # configure teacher
+    ########## configure teacher
     ############################
 
     if torch.cuda.is_available():       
@@ -622,6 +633,21 @@ def main(path_to_yaml, runs_path,
     teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = make_teacher(exp_config, device,
                                                                                         teacher_sets, teacher_load_path)
 
+    del teacher_test_dataloader
+
+    teacher_test_dataloader_joined = DataLoader(joined_test_set,
+                                         batch_size=teacher_config.test_batch_sz,
+                                         collate_fn=collate_teacher,)
+
+    teacher_test_dataloader_cadec = DataLoader(cadec_test_set,
+                                         batch_size=teacher_config.test_batch_sz,
+                                         collate_fn=collate_teacher,)
+
+    teacher_test_dataloader_psytar = DataLoader(psytar_test_set,
+                                         batch_size=teacher_config.test_batch_sz,
+                                         collate_fn=collate_teacher,)
+
+
     ############################
     ############ train a teacher
     ############################    
@@ -632,33 +658,22 @@ def main(path_to_yaml, runs_path,
     if do_train_teacher:
         train_teacher(exp_config, device,
                     teacher_model, teacher_optimizer, last_successful_epoch,
-                    teacher_train_dataloader, teacher_test_dataloader,
-                    writer, teacher_save_path)
-
-    '''
-    print("\n\nmemory stats:")
-    print("total:", torch.cuda.get_device_properties(0).total_memory)
-    print("reserved:",torch.cuda.memory_reserved(0))
-    print("allocated:",torch.cuda.memory_allocated(0))
-    '''
-
-
-    del teacher_train_dataloader
-    del teacher_test_dataloader
-    #torch.cuda.empty_cache()
+                    teacher_train_dataloader, teacher_test_dataloader_joined,
+                    writer, teacher_save_path,
+                    teacher_test_dataloader_cadec, teacher_test_dataloader_psytar)
 
     print(torch.cuda.memory_summary(0))
 
-    '''
-    print("\n\nemptied cache. stats:")
-    print("total:", torch.cuda.get_device_properties(0).total_memory)
-    print("reserved:",torch.cuda.memory_reserved(0))
-    print("allocated:",torch.cuda.memory_allocated(0))
-    '''
+    del teacher_train_dataloader
+    del teacher_test_dataloader_joined
+    del teacher_test_dataloader_cadec
+    del teacher_test_dataloader_psytar
+    print("\ndeleted dataloaders\n")
 
+    print(torch.cuda.memory_summary(0))
 
     ############################
-    # make a student
+    ############# make a student
     ############################
 
     student_sets = {
@@ -682,3 +697,5 @@ def main(path_to_yaml, runs_path,
         train_student(exp_config, device, last_successful_epoch,
                       teacher_args, student_args,
                       sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
+
+    return writer
