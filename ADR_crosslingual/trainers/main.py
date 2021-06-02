@@ -537,7 +537,8 @@ def train_student(exp_config, device, last_successful_epoch,
 
 def main(path_to_yaml, runs_path,
     teacher_load_path=None, teacher_save_path=None,
-    student_load_path=None, student_save_path=None):
+    student_load_path=None, student_save_path=None,
+    do_train_teacher=True, do_train_student=True):
     
     # todo os setpath?
 
@@ -613,10 +614,11 @@ def main(path_to_yaml, runs_path,
     writer = SummaryWriter(log_dir=os.path.join(runs_path, exp_config.experiment_name))
     writer.add_text('experiment_info', str(exp_config))
 
-    train_teacher(exp_config, device,
-                teacher_model, teacher_optimizer, last_successful_epoch,
-                teacher_train_dataloader, teacher_test_dataloader,
-                writer, teacher_save_path)
+    if do_train_teacher:
+        train_teacher(exp_config, device,
+                    teacher_model, teacher_optimizer, last_successful_epoch,
+                    teacher_train_dataloader, teacher_test_dataloader,
+                    writer, teacher_save_path)
 
     '''
     print("\n\nmemory stats:")
@@ -661,6 +663,7 @@ def main(path_to_yaml, runs_path,
     teacher_args = (teacher_model, teacher_optimizer, collate_teacher)
     student_args = (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student)
 
-    train_student(exp_config, device, last_successful_epoch,
-                  teacher_args, student_args,
-                  sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
+    if do_train_student:
+        train_student(exp_config, device, last_successful_epoch,
+                      teacher_args, student_args,
+                      sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
