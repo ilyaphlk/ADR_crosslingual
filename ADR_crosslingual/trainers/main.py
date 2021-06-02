@@ -344,7 +344,7 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
         num_labels = len(teacher_train_set.label2int)
     )
     if teacher_config.model_type['model'] is XLMTokenClassifier:
-        teacher_model_cfg.emb_dim = 1024
+        teacher_model_cfg.emb_dim = 1280
 
     teacher_model = teacher_config.model_type['model'](teacher_model_cfg)
     if teacher_config.model_checkpoint is not None:
@@ -445,7 +445,7 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
         num_labels = len(teacher_train_set.label2int)
     )
     if student_config.model_type['model'] is XLMTokenClassifier:
-        student_model_cfg.emb_dim = 1024
+        student_model_cfg.emb_dim = 1280
 
     student_model = student_config.model_type['model'](student_model_cfg)
     if student_config.model_checkpoint is not None:
