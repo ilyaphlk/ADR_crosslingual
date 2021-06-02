@@ -108,16 +108,12 @@ def get_cur_labeled_loaders(cur_labeled_set, batch_size, rudrec_labeled_set, col
     return teacher_loader, student_loader
 
 
-#def compute_metrics(labels, preds, original_lens, int2label):
 def compute_metrics(label_ids, preds_ids, int2label):
     '''
         label_ids, preds_ids - each is a list of sublists, sublist = doc
     '''
     # we are only intrested in metrics for non-pad tokens
     # so we must filter them out first
-
-    #label_ids = unpack(labels, original_lens) # list of (list of true labels for doc)
-    #preds_ids = unpack(preds, original_lens)
 
     labels = [list(map(lambda x: int2label[x], doc)) for doc in label_ids]
     preds = [list(map(lambda x: int2label[x], doc)) for doc in preds_ids]

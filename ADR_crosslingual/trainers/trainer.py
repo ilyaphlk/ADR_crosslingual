@@ -7,7 +7,7 @@ from ADR_crosslingual.utils import format_time, unpack
 def train_model(model, dataloader, cur_epoch, device, optimizer,
           teacher_model=None, sampler=None,
           logging_interval=10, tensorboard_writer=None, tb_postfix=" (train)", print_progress=True,
-          compute_metrics=None, int2label=None):
+          compute_metrics=None, int2label=None, model_initial=None, L2_coef=0):
     '''
     one epoch of training
     model - model to train
@@ -23,14 +23,8 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
 
     model.train()
 
-    #original_lens_batches = []
-    #labels_batches = []
-    #preds_batches = []
     label_ids = []
     preds_ids = []
-
-    #label_ids = unpack(labels, original_lens) # list of (list of true labels for doc)
-    #preds_ids = unpack(preds, original_lens)
 
     for step, batch in enumerate(dataloader, 1):
 
@@ -42,8 +36,6 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
 
         original_lens_batch = batch.pop('original_lens', None)
         device = next(model.parameters()).device
-
-        # ?TODO explicitly move batch to cpu?
 
         if sampler is not None:
             batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
@@ -65,15 +57,15 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         loss = result.loss
         total_train_loss += float(loss)
 
-        '''
-        if L2_C > 0:
-            for layer, layer_init in zip(model.bert_like.encoder.named_parameters(),
-                                        model_initial.bert_like.encoder.named_parameters()):
+        # custom L2, as described in SemEval 2020 Amobee Systems paper
+        if model_initial is not None and L2_coef > 0:
+            L2_exp = 1.2  # another magic constant pls fix
+            for layer, layer_init in zip(model.bert.encoder.named_parameters(),  ## TODO works only with bert, XLM doesn't have an encoder
+                                        model_initial.bert.encoder.named_parameters()):
                 encoder_layer_name = layer[0]
                 encoder_layer_number = int(encoder_layer_name.split(".")[1])
                 L2_delta = L2_C * ((layer[1] - layer_init[1])**2).sum() / L2_exp ** (encoder_layer_number + 1)
                 loss += L2_delta
-        '''
 
         loss.backward()
         del loss
@@ -115,10 +107,6 @@ def eval_model(model, dataloader, cur_epoch, device,
     model.eval()
 
     total_eval_loss = 0
-
-    #original_lens_batches = []
-    #labels_batches = []
-    #preds_batches = []
 
     label_ids = []
     preds_ids = []

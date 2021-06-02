@@ -15,6 +15,7 @@ from ADR_crosslingual.data.datasets import BratDataset
 from ADR_crosslingual.data.splitter import BratSplitter
 from ADR_crosslingual.data.convert import webanno2brat
 import time
+from copy import deepcopy
 from ADR_crosslingual.utils import (
     format_time, set_seed, unpack, compute_metrics,
     make_brat_pair, map_labels, get_cur_labeled_loaders,
@@ -62,7 +63,8 @@ def read_yaml_config(path_to_yaml):
                           'eps':float(t_cfg['optimizer_kwargs']['eps'])},
         train_batch_sz=t_cfg['train_batch_sz'],
         test_batch_sz=t_cfg['test_batch_sz'],
-        epochs=t_cfg['epochs']
+        epochs=t_cfg['epochs'],
+        L2_coef=float(t_cfg['L2_coef']),
     )
 
     student_config = TrainConfig(
@@ -367,6 +369,10 @@ def train_teacher(exp_config, device,
                 writer, teacher_save_path):
     teacher_config = exp_config.teacher_config
 
+    model_initial = None
+    if teacher_config.L2_coef > 1e-3:  # magic constant float epsilon
+        model_initial = deepcopy(teacher_model)
+
     total_t0 = time.time()
 
     for epoch_i in range(last_successful_epoch + 1, teacher_config.epochs):
@@ -375,7 +381,7 @@ def train_teacher(exp_config, device,
         
         train_model(teacher_model, teacher_train_dataloader, epoch_i, device, teacher_optimizer,
               logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, train, source language)',
-              compute_metrics=compute_metrics)
+              compute_metrics=compute_metrics, model_initial=model_initial, L2_coef=teacher_config.L2_coef)
         
         eval_model(teacher_model, teacher_test_dataloader, epoch_i, device,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, source language)',

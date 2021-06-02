@@ -23,6 +23,7 @@ class TrainConfig:
         train_batch_sz=1,
         test_batch_sz=1,
         epochs = 1,
+        L2_coef = 0
     ):
         self.optimizer_class = optimizer_class
         self.optimizer_kwargs = optimizer_kwargs
@@ -31,11 +32,13 @@ class TrainConfig:
         self.train_batch_sz = train_batch_sz
         self.test_batch_sz = test_batch_sz
         self.epochs = epochs
+        self.L2_coef = L2_coef
 
 
     def __str__(self):
         return "\n".join(["model_type = "+str(self.model_type['model']),
                           "model_checkpoint = "+str(self.model_checkpoint),
+                          "custom L2 coef = "+str(self.L2_coef),
                           "optimizer = "+str(self.optimizer_class),
                           "optimizer_kwargs = "+str(self.optimizer_kwargs),
                           "train_batch_sz = "+str(self.train_batch_sz),

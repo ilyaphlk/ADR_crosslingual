@@ -12,6 +12,7 @@ teacher_config:
   train_batch_sz: 4
   test_batch_sz: 4
   epochs: 2
+  L2_coef: 3
 
 student_config:
   model_type:
