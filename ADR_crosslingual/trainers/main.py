@@ -348,7 +348,7 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 
 
     return (teacher_model, teacher_optimizer, last_successful_epoch,
-        teacher_train_dataloader, teacher_test_dataloader)
+        teacher_train_dataloader, teacher_test_dataloader, collate_teacher)
 
 
 def train_teacher(exp_config, device,
@@ -422,7 +422,7 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
     sampler = sampler_config.sampler_class(**sampler_config.sampler_kwargs)
 
     return (student_model, student_optimizer, last_successful_epoch,
-        student_unlabeled_dataloader, student_test_dataloader, sampler)
+        student_unlabeled_dataloader, student_test_dataloader, sampler, collate_student)
 
 
 def train_student(exp_config, device, last_successful_epoch,
@@ -441,15 +441,16 @@ def train_student(exp_config, device, last_successful_epoch,
         student_config.train_batch_sz
     )
 
-    (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader) = teacher_args
-    (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader) = student_args
+    (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = teacher_args
+    (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student) = student_args
 
     for epoch_i in range(last_successful_epoch + 1, student_config.epochs):
 
         print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, student_config.epochs))
 
         if exp_config.n_few_shot > 0:
-            teacher_labeled_loader, student_labeled_loader = get_cur_labeled_loaders(cur_labeled_set, rudrec_labeled_b_sz, rudrec_labeled_set)
+            teacher_labeled_loader, student_labeled_loader = get_cur_labeled_loaders(cur_labeled_set, rudrec_labeled_b_sz,
+                rudrec_labeled_set, collate_teacher, collate_student)
 
         if exp_config.n_few_shot > 0:
             # first make a step with teacher for labeled samples
@@ -540,7 +541,7 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
 
 
     (teacher_model, teacher_optimizer, last_successful_epoch,
-    teacher_train_dataloader, teacher_test_dataloader) = make_teacher(exp_config, device, teacher_sets, teacher_path)
+    teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = make_teacher(exp_config, device, teacher_sets, teacher_path)
 
     ############################
     ############ train a teacher
@@ -566,14 +567,14 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
 
     (student_model, student_optimizer, last_successful_epoch,
     student_unlabeled_dataloader, student_test_dataloader,
-    sampler) = make_student(exp_config, device, student_sets, teacher_train_set, student_path)
+    sampler, collate_student) = make_student(exp_config, device, student_sets, teacher_train_set, student_path)
 
     ############################
     # train student
     ############################
 
-    teacher_args = (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader)
-    student_args = (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader)
+    teacher_args = (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader, collate_teacher)
+    student_args = (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student)
 
     train_student(exp_config, device, last_successful_epoch,
                   teacher_args, student_args,
