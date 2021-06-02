@@ -61,7 +61,8 @@ def read_yaml_config(path_to_yaml):
         model_checkpoint=t_cfg['model_checkpoint'],
         optimizer_class=eval(t_cfg['optimizer_class']),
         optimizer_kwargs={'lr':float(t_cfg['optimizer_kwargs']['lr']),
-                          'eps':float(t_cfg['optimizer_kwargs']['eps'])},
+                          'eps':float(t_cfg['optimizer_kwargs']['eps']),
+                          'weight_decay':float(t_cfg['optimizer_kwargs'].get('weight_decay', 0))},
         train_batch_sz=t_cfg['train_batch_sz'],
         test_batch_sz=t_cfg['test_batch_sz'],
         epochs=t_cfg['epochs'],
@@ -79,7 +80,8 @@ def read_yaml_config(path_to_yaml):
         model_checkpoint=st_cfg['model_checkpoint'],
         optimizer_class=eval(st_cfg['optimizer_class']),
         optimizer_kwargs={'lr':float(st_cfg['optimizer_kwargs']['lr']),
-                          'eps':float(st_cfg['optimizer_kwargs']['eps'])},
+                          'eps':float(st_cfg['optimizer_kwargs']['eps']),
+                          'weight_decay':float(st_cfg['optimizer_kwargs'].get('weight_decay', 0))},
         train_batch_sz=st_cfg['train_batch_sz'],
         test_batch_sz=st_cfg['test_batch_sz'],
         epochs=st_cfg['epochs']
@@ -398,7 +400,7 @@ def train_teacher(exp_config, device,
                 'optimizer_state_dict': teacher_optimizer.state_dict(),
             }
             torch.save(teacher_checkpoint_dict, teacher_save_path)
-            
+
             del teacher_checkpoint_dict
 
     del model_initial
