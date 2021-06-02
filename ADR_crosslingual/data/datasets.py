@@ -66,13 +66,13 @@ class BratDataset(torch.utils.data.Dataset):
 
 
     def set_label_info(self, label2int):
-        self.label_set = set(['UNK'])
+        self.label_set = set(['O'])
         for token_labels in self.labels:
             self.label_set = self.label_set | set(token_labels)
 
         if label2int is None:  # learn labels
-            self.label2int = {'UNK': 0}
-            for idx, label in enumerate(sorted(self.label_set - set(['UNK'])), 1):
+            self.label2int = {'O': 0}
+            for idx, label in enumerate(sorted(self.label_set - set(['O'])), 1):
                 self.label2int[label] = idx
         else:  # set labels from other fold
             self.label2int = label2int
@@ -116,26 +116,10 @@ class BratDataset(torch.utils.data.Dataset):
         item = {key: torch.tensor(val) for key, val in encoded_text.items()}
 
         if self.labeled:
-            encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['UNK']),
+            encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['O']),
                               self.labels[idx][:len(encoded_text['input_ids'])-2]))
-            labels = [self.label2int['UNK']] + encoded_labels + [self.label2int['UNK']]
+            labels = [self.label2int['O']] + encoded_labels + [self.label2int['O']]
             item['labels'] = torch.tensor(labels)
 
         return item
 
-
-class PsytarDataset(torch.utils.data.Dataset):
-    def __init__(self, corpus_dir):
-        raise NotImplementedError
-
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(index):
-            index = index.tolist(index)
-
-        raise NotImplementedError
-
-
-    def __len__(self):
-
-        raise NotImplementedError

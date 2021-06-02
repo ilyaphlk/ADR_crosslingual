@@ -91,7 +91,7 @@ def make_brat_pair(documents_iter, fold_dir):
 
 def map_labels(dataset, mapper, label2int=None):
     for idx, doc_labels in enumerate(dataset.labels):
-        dataset.labels[idx] = list(map(lambda s: mapper.get(s, 'UNK'), doc_labels))
+        dataset.labels[idx] = list(map(lambda s: mapper.get(s, 'O'), doc_labels))
     dataset.set_label_info(label2int)
 
 
