@@ -60,9 +60,7 @@ class BaseUncertaintySampler:
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
 
-        print(self.strategy)
         if self.strategy == 'confident':
-            print("found")
             idx_selected = idx_sorted[:self.n_samples_out]
         elif self.strategy == 'uncertain':
             idx_selected = idx_sorted[-self.n_samples_out:]

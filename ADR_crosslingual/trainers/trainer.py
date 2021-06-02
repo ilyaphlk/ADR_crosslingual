@@ -33,6 +33,8 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
+        del step
+
         original_lens_batches.append(batch.pop('original_lens', None))
         device = next(model.parameters()).device
 
@@ -56,7 +58,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         result = model(**batch)
 
         loss = result.loss
-        total_train_loss += loss.item()
+        total_train_loss += float(loss)
 
         '''
         if L2_C > 0:
@@ -68,8 +70,8 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
                 loss += L2_delta
         '''
 
-
         loss.backward()
+        del loss
 
         preds_batches.append(result.logits.max(-1).indices)
         if 'labels' in batch:
@@ -118,11 +120,12 @@ def eval_model(model, dataloader, cur_epoch, device,
         with torch.no_grad():
             result = model(**batch)
 
-        loss = result.loss
-        total_eval_loss += loss.item()
+            total_eval_loss += float(result.loss)
 
-        preds_batches.append(result.logits.max(-1).indices)
-        labels_batches.append(batch['labels'])
+            preds_batches.append(result.logits.max(-1).indices)
+            labels_batches.append(batch['labels'])
+
+            del result
 
     avg_val_loss = total_eval_loss / len(dataloader)
     validation_time = format_time(time.time() - t0)
@@ -134,6 +137,10 @@ def eval_model(model, dataloader, cur_epoch, device,
             int2label = dataloader.dataset.int2label if int2label is None else int2label
             metrics = compute_metrics(labels_batches, preds_batches, original_lens_batches, int2label)
             tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
+
+    del labels_batches
+    del preds_batches
+    del original_lens_batches
         
     if print_progress:
         print("  Test Loss: {0:.4f}".format(avg_val_loss))

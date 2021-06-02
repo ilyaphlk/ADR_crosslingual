@@ -471,7 +471,7 @@ def train_student(exp_config, device, last_successful_epoch,
         student_config.train_batch_sz
     )
 
-    (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = teacher_args
+    (teacher_model, teacher_optimizer, collate_teacher) = teacher_args
     (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student) = student_args
 
     for epoch_i in range(last_successful_epoch + 1, student_config.epochs):
@@ -578,7 +578,12 @@ def main(path_to_yaml, runs_path,
     if torch.cuda.is_available():       
         device = torch.device("cuda")
         print('There are %d GPU(s) available.' % torch.cuda.device_count())
-        print('We will use the GPU:', torch.cuda.get_device_name(0))
+        device_name = torch.cuda.get_device_name(0)
+        print('We will use the GPU:', device_name)
+        if 'K80' in device_name:
+            print('wild K80 appears. lowering the batch size...')
+            student_config.train_batch_sz = 2
+            exp_config.student_config.train_batch_sz = 2
 
     else:
         print('No GPU available, using the CPU instead.')
@@ -608,6 +613,22 @@ def main(path_to_yaml, runs_path,
                 teacher_train_dataloader, teacher_test_dataloader,
                 writer, teacher_save_path)
 
+    print("\n\nmemory stats:")
+    print("total:", torch.cuda.get_device_properties(0).total_memory)
+    print("reserved:",torch.cuda.memory_reserved(0))
+    print("allocated:",torch.cuda.memory_allocated(0))
+
+
+    del teacher_train_dataloader
+    del teacher_test_dataloader
+    torch.cuda.empty_cache()
+
+    print("\n\nemptied cache. stats:")
+    print("total:", torch.cuda.get_device_properties(0).total_memory)
+    print("reserved:",torch.cuda.memory_reserved(0))
+    print("allocated:",torch.cuda.memory_allocated(0))
+
+
     ############################
     # make a student
     ############################
@@ -626,7 +647,7 @@ def main(path_to_yaml, runs_path,
     # train student
     ############################
 
-    teacher_args = (teacher_model, teacher_optimizer, teacher_train_dataloader, teacher_test_dataloader, collate_teacher)
+    teacher_args = (teacher_model, teacher_optimizer, collate_teacher)
     student_args = (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student)
 
     train_student(exp_config, device, last_successful_epoch,
