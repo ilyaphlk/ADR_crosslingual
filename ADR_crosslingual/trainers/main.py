@@ -598,7 +598,7 @@ def main(path_to_yaml, runs_path,
     ############ train a teacher
     ############################    
 
-    writer = SummaryWriter(log_dir=os.path.join('runs', exp_config.experiment_name))
+    writer = SummaryWriter(log_dir=os.path.join(runs_path, exp_config.experiment_name))
     writer.add_text('experiment_info', str(exp_config))
 
     train_teacher(exp_config, device,
