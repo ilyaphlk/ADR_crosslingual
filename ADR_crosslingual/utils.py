@@ -102,8 +102,8 @@ def get_cur_labeled_loaders(cur_labeled_set, batch_size, rudrec_labeled_set, col
         batch.append(rudrec_labeled_set[idx])
     cur_labeled_set.extend(batch)
 
-    student_loader = DataLoader(cur_labeled_set, batch_size=batch_size, collate_fn=collate_student)
-    teacher_loader = DataLoader(batch, batch_size=batch_size, collate_fn=collate_teacher)
+    student_loader = DataLoader(cur_labeled_set, batch_size=batch_size, collate_fn=collate_student, pin_memory=True)
+    teacher_loader = DataLoader(batch, batch_size=batch_size, collate_fn=collate_teacher, pin_memory=True)
 
     return teacher_loader, student_loader
 

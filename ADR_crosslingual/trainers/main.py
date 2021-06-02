@@ -321,11 +321,13 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 
     teacher_train_dataloader = DataLoader(teacher_train_set,
                                           batch_size=teacher_config.train_batch_sz,
-                                          collate_fn=collate_teacher)
+                                          collate_fn=collate_teacher,
+                                          pin_memory=True)
 
     teacher_test_dataloader = DataLoader(teacher_test_set,
                                          batch_size=teacher_config.test_batch_sz,
-                                         collate_fn=collate_teacher)
+                                         collate_fn=collate_teacher,
+                                         pin_memory=True)
 
     set_seed(exp_config.seed)
 
@@ -406,13 +408,15 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
         unlabeled_set,
         batch_size=sampler_config.n_samples_in,  # feed batches to sampler, sampler reduces them to n_samples_out <= train_batch_sz
         collate_fn=collate_student,
-        shuffle = True  # reshuffle unlabeled samples every epoch
+        shuffle = True,  # reshuffle unlabeled samples every epoch
+        pin_memory=True
     )
 
     student_test_dataloader = DataLoader(
         test_set,
         batch_size=student_config.test_batch_sz,
-        collate_fn=collate_student
+        collate_fn=collate_student,
+        pin_memory=True
     )
 
     last_successful_epoch = -1
