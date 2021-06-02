@@ -489,6 +489,9 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
     # todo os setpath?
 
     exp_config = read_yaml_config(path_to_yaml)
+
+    print(exp_config)
+
     teacher_config = exp_config.teacher_config
     student_config = exp_config.student_config
 

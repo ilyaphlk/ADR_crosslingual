@@ -59,11 +59,14 @@ class BaseUncertaintySampler:
 
         scores = np.array(scores)
         idx_sorted = np.argsort(scores)
-        if self.strategy is 'confident':
+
+        print(self.strategy)
+        if self.strategy == 'confident':
+            print("found")
             idx_selected = idx_sorted[:self.n_samples_out]
-        elif self.strategy is 'uncertain':
+        elif self.strategy == 'uncertain':
             idx_selected = idx_sorted[-self.n_samples_out:]
-        elif self.strategy is 'mid':
+        elif self.strategy == 'mid':
             raise NotImplementedError
 
         filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
