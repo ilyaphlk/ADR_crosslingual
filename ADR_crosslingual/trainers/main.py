@@ -396,7 +396,8 @@ def train_teacher(exp_config, device,
             'model_state_dict': teacher_model.state_dict(),
             'optimizer_state_dict': teacher_optimizer.state_dict(),
         }
-        torch.save(teacher_checkpoint_dict, teacher_save_path)
+        if teacher_save_path is not None:
+            torch.save(teacher_checkpoint_dict, teacher_save_path)
         del teacher_checkpoint_dict
 
     del model_initial
@@ -527,7 +528,8 @@ def train_student(exp_config, device, last_successful_epoch,
             'optimizer_state_dict': student_optimizer.state_dict(),
             'cur_labeled_set': cur_labeled_set
         }
-        torch.save(student_checkpoint_dict, student_save_path)
+        if student_save_path is not None:
+            torch.save(student_checkpoint_dict, student_save_path)
 
         del student_checkpoint_dict
 
@@ -536,7 +538,8 @@ def train_student(exp_config, device, last_successful_epoch,
             'model_state_dict': teacher_model.state_dict(),
             'optimizer_state_dict': teacher_optimizer.state_dict(),
         }
-        torch.save(teacher_checkpoint_dict, teacher_save_path)
+        if teacher_save_path is not None:
+            torch.save(teacher_checkpoint_dict, teacher_save_path)
 
         del teacher_checkpoint_dict
 
