@@ -61,7 +61,7 @@ class BaseUncertaintySampler:
         idx_sorted = np.argsort(scores)
         if self.strategy is 'confident':
             idx_selected = idx_sorted[:self.n_samples_out]
-        elif self.startegy is 'uncertain':
+        elif self.strategy is 'uncertain':
             idx_selected = idx_sorted[-self.n_samples_out:]
         elif self.strategy is 'mid':
             raise NotImplementedError
