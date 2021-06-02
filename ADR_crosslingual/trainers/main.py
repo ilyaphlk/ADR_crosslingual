@@ -347,6 +347,13 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
     )
 
 
+    if checkpoint_path is not None:
+        chk = torch.load(checkpoint_path)
+        last_successful_epoch = chk['epoch']
+        student_model.load_state_dict(chk['model_state_dict'])
+        student_optimizer.load_state_dict(chk['optimizer_state_dict'])
+
+
     return (teacher_model, teacher_optimizer, last_successful_epoch,
         teacher_train_dataloader, teacher_test_dataloader, collate_teacher)
 
@@ -354,7 +361,7 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 def train_teacher(exp_config, device,
                 teacher_model, teacher_optimizer, last_successful_epoch,
                 teacher_train_dataloader, teacher_test_dataloader,
-                writer):
+                writer, teacher_save_path):
     teacher_config = exp_config.teacher_config
 
     total_t0 = time.time()
@@ -371,6 +378,13 @@ def train_teacher(exp_config, device,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, source language)',
              compute_metrics=compute_metrics)
 
+        teacher_checkpoint_dict = {
+            'epoch': epoch_i,
+            'model_state_dict': teacher_model.state_dict(),
+            'optimizer_state_dict': teacher_optimizer.state_dict(),
+        }
+        torch.save(teacher_checkpoint_dict, teacher_save_path)
+
     print("")
     print("Training teacher complete!")
 
@@ -378,7 +392,6 @@ def train_teacher(exp_config, device,
 
 
 def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint_path=None):
-    last_successful_epoch = -1
     student_config = exp_config.student_config
     sampler_config = exp_config.sampler_config
     student_tokenizer = student_config.model_type['tokenizer'].from_pretrained(student_config.model_checkpoint)
@@ -386,6 +399,8 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
     collate_student = lambda x: collate_dicts_(x, pad_id=student_tokenizer.pad_token_id)
 
     unlabeled_set, test_set = student_sets[exp_config.student_set]
+
+    set_seed(exp_config.seed)
 
     student_unlabeled_dataloader = DataLoader(
         unlabeled_set,
@@ -400,7 +415,8 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
         collate_fn=collate_student
     )
 
-    set_seed(exp_config.seed)
+    last_successful_epoch = -1
+    cur_labeled_set = []
 
     student_model_cfg = student_config.model_type['config'](
         return_dict = True,
@@ -420,22 +436,29 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
         **student_config.optimizer_kwargs
     )
 
+    if checkpoint_path is not None:
+        chk = torch.load(checkpoint_path)
+        last_successful_epoch = chk['epoch']
+        student_model.load_state_dict(chk['model_state_dict'])
+        student_optimizer.load_state_dict(chk['optimizer_state_dict'])
+        cur_labeled_set = chk['cur_labeled_set']
+
     sampler = sampler_config.sampler_class(**sampler_config.sampler_kwargs)
 
     return (student_model, student_optimizer, last_successful_epoch,
-        student_unlabeled_dataloader, student_test_dataloader, sampler, collate_student)
+        student_unlabeled_dataloader, student_test_dataloader, sampler, collate_student, cur_labeled_set)
 
 
 def train_student(exp_config, device, last_successful_epoch,
                   teacher_args, student_args,
-                  sampler, writer, rudrec_labeled_set):
+                  sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path):
 
     teacher_config = exp_config.teacher_config
     student_config = exp_config.student_config
 
     total_t0 = time.time()
 
-    cur_labeled_set = []
+    #cur_labeled_set = []
 
     rudrec_labeled_b_sz = min(
         teacher_config.train_batch_sz,
@@ -478,13 +501,32 @@ def train_student(exp_config, device, last_successful_epoch,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (student, test, rudrec)',
              compute_metrics=compute_metrics)
 
+
+        student_checkpoint_dict = {
+            'epoch': epoch_i,
+            'model_state_dict': student_model.state_dict(),
+            'optimizer_state_dict': student_optimizer.state_dict(),
+            'cur_labeled_set': cur_labeled_set
+        }
+        torch.save(student_checkpoint_dict, student_save_path)
+
+        teacher_checkpoint_dict = {
+            'epoch': epoch_i,
+            'model_state_dict': teacher_model.state_dict(),
+            'optimizer_state_dict': teacher_optimizer.state_dict(),
+        }
+        torch.save(teacher_checkpoint_dict, teacher_save_path)
+
     print("")
     print("Training student complete!")
 
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 
 
-def main(path_to_yaml, teacher_path=None, student_path=None):
+
+def main(path_to_yaml, runs_path,
+    teacher_load_path=None, teacher_save_path=None,
+    student_load_path=None, student_save_path=None):
     
     # todo os setpath?
 
@@ -545,7 +587,8 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
 
 
     (teacher_model, teacher_optimizer, last_successful_epoch,
-    teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = make_teacher(exp_config, device, teacher_sets, teacher_path)
+    teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = make_teacher(exp_config, device,
+                                                                                        teacher_sets, teacher_load_path)
 
     ############################
     ############ train a teacher
@@ -557,7 +600,7 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
     train_teacher(exp_config, device,
                 teacher_model, teacher_optimizer, last_successful_epoch,
                 teacher_train_dataloader, teacher_test_dataloader,
-                writer)
+                writer, teacher_save_path)
 
     ############################
     # make a student
@@ -571,7 +614,7 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
 
     (student_model, student_optimizer, last_successful_epoch,
     student_unlabeled_dataloader, student_test_dataloader,
-    sampler, collate_student) = make_student(exp_config, device, student_sets, teacher_train_set, student_path)
+    sampler, collate_student, cur_labeled_set) = make_student(exp_config, device, student_sets, teacher_train_set, student_load_path)
 
     ############################
     # train student
@@ -582,4 +625,4 @@ def main(path_to_yaml, teacher_path=None, student_path=None):
 
     train_student(exp_config, device, last_successful_epoch,
                   teacher_args, student_args,
-                  sampler, writer, rudrec_labeled_set)
+                  sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
