@@ -350,10 +350,11 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 
 
     if checkpoint_path is not None:
+        print("loading teacher from checkpoint...")
         chk = torch.load(checkpoint_path)
         last_successful_epoch = chk['epoch']
-        student_model.load_state_dict(chk['model_state_dict'])
-        student_optimizer.load_state_dict(chk['optimizer_state_dict'])
+        teacher_model.load_state_dict(chk['model_state_dict'])
+        teacher_optimizer.load_state_dict(chk['optimizer_state_dict'])
 
 
     return (teacher_model, teacher_optimizer, last_successful_epoch,
@@ -441,6 +442,7 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
     )
 
     if checkpoint_path is not None:
+        print("loading student from checkpoint...")
         chk = torch.load(checkpoint_path)
         last_successful_epoch = chk['epoch']
         student_model.load_state_dict(chk['model_state_dict'])
