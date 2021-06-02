@@ -38,8 +38,8 @@ sampler_config:
 
 exp_config:
   n_few_shot: 40
-  experiment_name: 'exp 40 shot, bert -> bert'
+  experiment_name: 'exp_0_0_0, bert -> bert'
   seed: 42
   teacher_set: 'cadec'
   student_set: 'small'
-  common_tokenize: word_tokenize
+  #common_tokenize: word_tokenize

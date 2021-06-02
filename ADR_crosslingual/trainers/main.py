@@ -391,14 +391,15 @@ def train_teacher(exp_config, device,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, source language)',
              compute_metrics=compute_metrics)
 
-        teacher_checkpoint_dict = {
-            'epoch': epoch_i,
-            'model_state_dict': teacher_model.state_dict(),
-            'optimizer_state_dict': teacher_optimizer.state_dict(),
-        }
         if teacher_save_path is not None:
+            teacher_checkpoint_dict = {
+                'epoch': epoch_i,
+                'model_state_dict': teacher_model.state_dict(),
+                'optimizer_state_dict': teacher_optimizer.state_dict(),
+            }
             torch.save(teacher_checkpoint_dict, teacher_save_path)
-        del teacher_checkpoint_dict
+            
+            del teacher_checkpoint_dict
 
     del model_initial
 
@@ -522,26 +523,27 @@ def train_student(exp_config, device, last_successful_epoch,
              compute_metrics=compute_metrics)
 
 
-        student_checkpoint_dict = {
-            'epoch': epoch_i,
-            'model_state_dict': student_model.state_dict(),
-            'optimizer_state_dict': student_optimizer.state_dict(),
-            'cur_labeled_set': cur_labeled_set
-        }
         if student_save_path is not None:
+            student_checkpoint_dict = {
+                'epoch': epoch_i,
+                'model_state_dict': student_model.state_dict(),
+                'optimizer_state_dict': student_optimizer.state_dict(),
+                'cur_labeled_set': cur_labeled_set
+            }
             torch.save(student_checkpoint_dict, student_save_path)
 
-        del student_checkpoint_dict
+            del student_checkpoint_dict
 
-        teacher_checkpoint_dict = {
-            'epoch': epoch_i,
-            'model_state_dict': teacher_model.state_dict(),
-            'optimizer_state_dict': teacher_optimizer.state_dict(),
-        }
+
         if teacher_save_path is not None:
+            teacher_checkpoint_dict = {
+                'epoch': epoch_i,
+                'model_state_dict': teacher_model.state_dict(),
+                'optimizer_state_dict': teacher_optimizer.state_dict(),
+            }
             torch.save(teacher_checkpoint_dict, teacher_save_path)
 
-        del teacher_checkpoint_dict
+            del teacher_checkpoint_dict
 
     print("")
     print("Training student complete!")
@@ -635,26 +637,12 @@ def main(path_to_yaml, runs_path,
                     teacher_train_dataloader, teacher_test_dataloader,
                     writer, teacher_save_path)
 
-    '''
-    print("\n\nmemory stats:")
-    print("total:", torch.cuda.get_device_properties(0).total_memory)
-    print("reserved:",torch.cuda.memory_reserved(0))
-    print("allocated:",torch.cuda.memory_allocated(0))
-    '''
-
-
     del teacher_train_dataloader
     del teacher_test_dataloader
     #torch.cuda.empty_cache()
 
     print(torch.cuda.memory_summary(0))
 
-    '''
-    print("\n\nemptied cache. stats:")
-    print("total:", torch.cuda.get_device_properties(0).total_memory)
-    print("reserved:",torch.cuda.memory_reserved(0))
-    print("allocated:",torch.cuda.memory_allocated(0))
-    '''
 
 
     ############################
@@ -682,3 +670,5 @@ def main(path_to_yaml, runs_path,
         train_student(exp_config, device, last_successful_epoch,
                       teacher_args, student_args,
                       sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
+
+    return writer
