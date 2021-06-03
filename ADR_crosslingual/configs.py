@@ -77,6 +77,7 @@ class ExperimentConfig:
     student_set: str = "small"
     classification_type: str = "multiclass"
     big_set_sample_cnt: int = 0
+    init_with_teacher: bool = False
 
 
     def __str__(self):
@@ -85,6 +86,7 @@ class ExperimentConfig:
                          "teacher_set = "+str(self.teacher_set)+"; \n",
                          "student_set = "+str(self.student_set)+"; \n",
                          "big_set_sample_cnt = "+str(self.big_set_sample_cnt)+"; \n",
+                         "init_with_teacher = "+str(self.init_with_teacher)+"; \n",
                          "common_tokenize = "+str(self.common_tokenize)+"; \n",
                          "classification_type = "+str(self.classification_type)+"; \n",
                          "teacher:\n"+str(self.teacher_config)+"\n",

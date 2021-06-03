@@ -46,5 +46,6 @@ exp_config:
   seed: 42
   teacher_set: 'joined'
   student_set: 'small'
+  init_with_teacher: True
   #big_set_sample_cnt: 2000
   #common_tokenize: word_tokenize

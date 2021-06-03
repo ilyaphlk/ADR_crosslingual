@@ -111,12 +111,15 @@ def read_yaml_config(path_to_yaml):
         teacher_set=exp_cfg['teacher_set'],
         student_set=exp_cfg.get('student_set', 'small'),
         classification_type=exp_cfg.get('classification_type', 'multiclass'),
+        init_with_teacher=exp_cfg.get('init_with_teacher', False),
+        big_set_sample_cnt=exp_cfg.get('big_set_sample_cnt', 0)
     )
     common_tokenize=exp_cfg.get('common_tokenize', None)
     if common_tokenize is not None:
         exp_config.common_tokenize = eval(common_tokenize)
 
-    exp_config.big_set_sample_cnt = exp_cfg.get('big_set_sample_cnt', 0)
+    if exp_config.init_with_teacher:
+        assert teacher_config.model_type['model'] == student_config.model_type['model']
 
     return exp_config
 
@@ -422,7 +425,7 @@ def train_teacher(exp_config, device,
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 
 
-def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint_path=None):
+def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint_path=None, teacher_model=None):
     student_config = exp_config.student_config
     sampler_config = exp_config.sampler_config
     student_tokenizer = student_config.model_type['tokenizer'].from_pretrained(student_config.model_checkpoint)
@@ -458,9 +461,13 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
     if student_config.model_type['model'] is XLMTokenClassifier:
         student_model_cfg.emb_dim = 1280
 
-    student_model = student_config.model_type['model'](student_model_cfg)
-    if student_config.model_checkpoint is not None:
-        student_model.bert = student_model.bert.from_pretrained(student_config.model_checkpoint)
+    student_model = None
+    if exp_config.init_with_teacher and teacher_model is not None:
+        student_model = deepcopy(teacher_model)
+    else:
+        student_model = student_config.model_type['model'](student_model_cfg)
+        if student_config.model_checkpoint is not None:
+            student_model.bert = student_model.bert.from_pretrained(student_config.model_checkpoint)
 
     student_model.to(device)
 
@@ -476,6 +483,7 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
         student_model.load_state_dict(chk['model_state_dict'])
         student_optimizer.load_state_dict(chk['optimizer_state_dict'])
         cur_labeled_set = chk['cur_labeled_set']
+    
 
     sampler = sampler_config.sampler_class(**sampler_config.sampler_kwargs)
 
@@ -678,7 +686,8 @@ def main(path_to_yaml, runs_path,
 
     (student_model, student_optimizer, last_successful_epoch,
     student_unlabeled_dataloader, student_test_dataloader,
-    sampler, collate_student, cur_labeled_set) = make_student(exp_config, device, student_sets, teacher_train_set, student_load_path)
+    sampler, collate_student, cur_labeled_set) = make_student(exp_config, device, student_sets, teacher_train_set,
+                                                              student_load_path, teacher_model)
 
     ############################
     # train student
