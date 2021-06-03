@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from NLPDatasetIO.dataset import Dataset
 from transformers import BertTokenizer, XLMTokenizer
+import json
 
 
 class BratDataset(torch.utils.data.Dataset):
@@ -123,3 +124,80 @@ class BratDataset(torch.utils.data.Dataset):
 
         return item
 
+
+
+class JsonDataset(torch.utils.data.Dataset):
+    def __init__(self, path_to_json, tokenizer, labeled=False, sample_count=None,
+        random_state=None, shuffle=False, datasets_iter=None, tokenize=None):
+        '''
+          
+        '''
+
+        self.documents = []
+        self.tokenizer = tokenizer
+        self.tokenize = tokenize if tokenize is not None else tokenizer.tokenize
+        with open(path_to_json) as json_file:
+            data = json.load(json_file)
+            for p in data:
+                text = p.get('comment', None)
+                if text is not None and text != '':
+                    self.documents.append(text)
+
+        self.labeled = labeled
+        self.labels = []
+        self.random_state = random_state
+        if random_state is not None:
+            np.random.seed(random_state)
+
+        self.shuffle = shuffle
+        if shuffle:
+            rng_state = np.random.get_state()
+            np.random.shuffle(self.documents)
+            if self.labeled:
+                np.random.set_state(rng_state)
+                np.random.shuffle(self.labels)
+
+        if sample_count is not None and sample_count < len(self.documents):
+            self.documents = self.documents[:sample_count]
+            
+
+    def __len__(self):
+        return len(self.documents)
+
+
+    def __getitem__(self, idx):
+
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        document = self.documents[idx]
+        
+        #encoded_text = self.tokenizer.encode_plus(document.text, max_length=512)
+        #can't use that robustly because of how NLPDatasetIO works
+
+        # do it manually, I guess
+        preceding_token_id, trailing_token_id = None, None
+        if isinstance(self.tokenizer, BertTokenizer):
+            preceding_token_id, trailing_token_id = (self.tokenizer.cls_token_id,
+                                                     self.tokenizer.sep_token_id)
+        if isinstance(self.tokenizer, XLMTokenizer):
+            preceding_token_id, trailing_token_id = (self.tokenizer.bos_token_id,
+                                                     self.tokenizer.sep_token_id)
+
+        text_tokens = [token for token in self.tokenize(document)][:510]
+        encoded_text = {}
+        encoded_text['input_ids'] = ([preceding_token_id] + 
+                                     self.tokenizer.convert_tokens_to_ids(text_tokens) +
+                                     [trailing_token_id])
+        encoded_text['token_type_ids'] = torch.zeros(len(encoded_text['input_ids'])).long()
+        encoded_text['attention_mask'] = torch.ones(len(encoded_text['input_ids'])).long()
+
+        item = {key: torch.tensor(val) for key, val in encoded_text.items()}
+
+        if self.labeled:
+            encoded_labels = list(map(lambda elem: self.label2int.get(elem, self.label2int['O']),
+                              self.labels[idx][:len(encoded_text['input_ids'])-2]))
+            labels = [self.label2int['O']] + encoded_labels + [self.label2int['O']]
+            item['labels'] = torch.tensor(labels)
+
+        return item
