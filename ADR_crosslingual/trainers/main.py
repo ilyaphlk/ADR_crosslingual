@@ -114,6 +114,8 @@ def read_yaml_config(path_to_yaml):
     if common_tokenize is not None:
         exp_config.common_tokenize = eval(common_tokenize)
 
+    exp_config.big_set_sample_cnt = exp_cfg.get('big_set_sample_cnt', 0)
+
     return exp_config
 
 
@@ -281,7 +283,8 @@ def make_mappers(exp_config):
 
 def unify_data(rudrec_to_cadec, psytar_to_cadec, cadec_train_set,
                rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set,
-               psytar_train_set, psytar_test_set):
+               psytar_train_set, psytar_test_set,
+               big_unlabeled_set):
 
     map_labels(rudrec_labeled_set, rudrec_to_cadec, cadec_train_set.label2int)
     map_labels(rudrec_test_set, rudrec_to_cadec, cadec_train_set.label2int)
@@ -293,6 +296,10 @@ def unify_data(rudrec_to_cadec, psytar_to_cadec, cadec_train_set,
     rudrec_unlabeled_set.label2int = rudrec_labeled_set.label2int
     rudrec_unlabeled_set.int2label = rudrec_labeled_set.int2label
     rudrec_unlabeled_set.num_labels = rudrec_labeled_set.num_labels
+
+    big_unlabeled_set.label2int = rudrec_labeled_set.label2int
+    big_unlabeled_set.int2label = rudrec_labeled_set.int2label
+    big_unlabeled_set.num_labels = rudrec_labeled_set.num_labels    
 
 
 
@@ -581,6 +588,12 @@ def main(path_to_yaml, runs_path,
 
     rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set = make_rudrec(folds_dir, exp_config)
 
+    json_dir = './consumers_drugs_reviews.json'
+
+    big_unlabeled_set = JsonDataset(json_dir, teacher_tokenizer,
+        labeled=False, sample_count=exp_config.big_set_sample_cnt,
+        random_state=exp_config.seed, shuffle=True, tokenize=exp_config.common_tokenize):
+
     ############################
     ### make sure the labels are consistent
     ############################
@@ -589,7 +602,8 @@ def main(path_to_yaml, runs_path,
 
     unify_data(rudrec_to_cadec, psytar_to_cadec, cadec_train_set,
                rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set,
-               psytar_train_set, psytar_test_set)
+               psytar_train_set, psytar_test_set,
+               big_unlabeled_set)
 
     ############################
     # make a joined set
@@ -655,6 +669,7 @@ def main(path_to_yaml, runs_path,
 
     student_sets = {
         'small': (rudrec_unlabeled_set, rudrec_test_set),
+        'big': (big_unlabeled_set, rudrec_test_set)
     }
 
     teacher_train_set = teacher_sets[exp_config.teacher_set][0]
