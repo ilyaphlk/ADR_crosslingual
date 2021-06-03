@@ -592,7 +592,7 @@ def main(path_to_yaml, runs_path,
 
     big_unlabeled_set = JsonDataset(json_dir, teacher_tokenizer,
         labeled=False, sample_count=exp_config.big_set_sample_cnt,
-        random_state=exp_config.seed, shuffle=True, tokenize=exp_config.common_tokenize):
+        random_state=exp_config.seed, shuffle=True, tokenize=exp_config.common_tokenize)
 
     ############################
     ### make sure the labels are consistent
