@@ -643,8 +643,8 @@ def main(path_to_yaml, runs_path,
     del teacher_train_dataloader
     del teacher_test_dataloader
     #torch.cuda.empty_cache()
-
-    print(torch.cuda.memory_summary(0))
+    if torch.cuda.is_available():
+        print(torch.cuda.memory_summary(0))
 
 
 

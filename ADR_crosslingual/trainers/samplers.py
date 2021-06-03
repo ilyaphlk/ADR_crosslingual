@@ -66,7 +66,8 @@ class BaseUncertaintySampler:
                     cur_probs = cur_probs[:, :orig_len, :]
                 scores.append(self._calculate_uncertainty_score(cur_probs))
 
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             '''
             if not self.stochastic:
                 computed_logits.append({'teacher_logits':logits})
