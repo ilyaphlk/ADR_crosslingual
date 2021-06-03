@@ -91,9 +91,10 @@ def read_yaml_config(path_to_yaml):
     sampler_config = SamplerConfig(
         sampler_class=eval(spl_cfg['sampler_class']),#BALDSampler,#RandomSampler,
         sampler_kwargs={'strategy':spl_cfg['sampler_kwargs']['strategy'],
-                        'n_samples_out':spl_cfg['sampler_kwargs'].get('n_samples_out', student_config.train_batch_sz),},
+                        'n_samples_out':spl_cfg['sampler_kwargs'].get('n_samples_out', student_config.train_batch_sz),
+                        'scoring_batch_sz':spl_cfg['sampler_kwargs'].get('scoring_batch_sz', 1)},
         n_samples_in= spl_cfg['n_samples_in'],
-        scoring_batch_sz=spl_cfg.get('scoring_batch_sz', 1)
+        
     )
 
     if 'n_forward_passes' in spl_cfg['sampler_kwargs']:
