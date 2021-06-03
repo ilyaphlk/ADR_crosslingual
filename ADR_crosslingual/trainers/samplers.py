@@ -47,7 +47,6 @@ class BaseUncertaintySampler:
                 batched_samples[key] = t.to(device)
 
             probs_list = []
-            logits = None
             for _ in range(self.n_forward_passes):
                 with torch.no_grad():
                     probs = torch.nn.functional.softmax(
