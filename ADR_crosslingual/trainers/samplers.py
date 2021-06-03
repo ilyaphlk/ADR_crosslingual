@@ -4,7 +4,7 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy='confident', n_samples_out=1):
+    def __init__(self, strategy='confident', n_samples_out=1, scoring_batch_sz=1):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
@@ -14,7 +14,7 @@ class BaseUncertaintySampler:
         self.n_samples_out = n_samples_out
         self.stochastic = None
         self.n_forward_passes = 1
-        self.scoring_batch_sz = 1
+        self.scoring_batch_sz = scoring_batch_sz
 
 
     def __call__(self, batch, model):
