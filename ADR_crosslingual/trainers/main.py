@@ -39,6 +39,7 @@ from ADR_crosslingual.trainers.samplers import (
     MarginOfConfidenceSampler,
     BALDSampler,
     VarianceSampler,
+    EntropySampler
     RandomSampler
 )
 

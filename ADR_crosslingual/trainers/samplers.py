@@ -16,7 +16,7 @@ class BaseUncertaintySampler:
         self.n_forward_passes = 1
 
 
-    def __call__(self, batch, model):
+    def __call__(self, batch, model, scoring_batch_sz=4):
 
         model.eval()
         device = next(model.parameters()).device
@@ -34,23 +34,39 @@ class BaseUncertaintySampler:
         scores = []
         computed_logits = []
 
-        for i in range(N):
-            sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
+        for i in range(0, N, scoring_batch_sz):
+            samples = []
+            for j in range(i, min(N, i+scoring_batch_sz)):
+                samples.append({key : val[j,:] for key, val in batch.items()})
+
+            batched_samples = collate_dicts(samples)
+            del samples
+            original_lens = batched_samples.pop('original_lens', None)
+
+            for key, t in batched_samples:
+                batched_samples[key] = t.to(device)
+
             probs_list = []
             logits = None
             for _ in range(self.n_forward_passes):
-                #logits = model(**sample).logits.squeeze()
                 with torch.no_grad():
                     probs = torch.nn.functional.softmax(
-                        model(**sample).logits.squeeze().to('cpu'),
+                        model(**batched_samples).logits.to('cpu'),
                         dim=-1
                     )
                     probs_list.append(probs)
 
-            probs = torch.stack(probs_list, dim=0)
-            scores.append(self._calculate_uncertainty_score(probs))
+            del batched_samples
 
-            del sample
+            probs = torch.stack(probs_list, dim=1)
+            for j in range(probs.size(0)):
+                #truncate probs:
+                cur_probs = probs[j,:,:,:]
+                if original_lens is not None:
+                    orig_len = original_lens[j]
+                    cur_probs = cur_probs[:, :orig_len, :]
+                scores.append(self._calculate_uncertainty_score(cur_probs))
+
             torch.cuda.empty_cache()
             '''
             if not self.stochastic:
@@ -158,7 +174,7 @@ class VarianceSampler(BaseUncertaintySampler):
         # probs.shape = (T, N, C)
         E = probs.mean(dim=0)  # shape = (N, C)
         Means = torch.diag(E @ E.T)  # shape = (N,)
-        P = probs @ probs.transpose(1, 2)  # shape = (T, N, N)
+        P = probs @ probs.transpose(-1, -2)  # shape = (T, N, N)
         P = P[:, np.arange(P.size(1)), np.arange(P.size(1))]  # shape = (T, N) - taking diagonals in a batch
         Vars = (P - Means).mean(dim=0)
         return Vars
