@@ -4,7 +4,7 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy='confident', n_samples_out=1, scoring_batch_sz=1):
+    def __init__(self, strategy='confident', n_samples_out=1, scoring_batch_sz=1, averaging_share=None):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
@@ -15,6 +15,7 @@ class BaseUncertaintySampler:
         self.stochastic = None
         self.n_forward_passes = 1
         self.scoring_batch_sz = scoring_batch_sz
+        self.averaging_share = averaging_share if averaging_share is None else float(averaging_share)
 
 
     def __call__(self, batch, model):
@@ -66,7 +67,17 @@ class BaseUncertaintySampler:
                 if original_lens is not None:
                     orig_len = original_lens[j]
                     cur_probs = cur_probs[:, :orig_len, :]
-                scores.append(self._calculate_uncertainty_score(cur_probs))
+
+                token_scores = self._calculate_uncertainty_score(cur_probs)
+                aggregated_score = None
+                if self.averaging_share is None:
+                    aggregated_score = torch.mean(token_scores)
+                else:
+                    k = int(token_scores.size(0) * self.averaging_share)
+                    k = max(1, k)
+                    aggregated_score = torch.topk(token_scores, k, dim=0).mean()
+
+                scores.append(aggregated_score)
                 del cur_probs
             del original_lens
             del probs
@@ -116,18 +127,17 @@ class MarginOfConfidenceSampler(BaseUncertaintySampler):
         probs = probs.squeeze()
         highest_probs = torch.topk(probs, 2, dim=-1).values
         margins = highest_probs[:, 0] - highest_probs[:, 1]
-        mean_margin = margins.float().mean()
+        margins = margins.float()
         
-        return -mean_margin
+        return -margins
 
 
 class LeastConfidenceSampling(BaseUncertaintySampler):
     def _calculate_uncertainty_score(self, probs):
         probs = probs.squeeze()
         highest_probs = torch.topk(probs, 1, dim=-1).values
-        mean_difference = (1 - highest_probs).float().mean()
 
-        return mean_difference
+        return (1 - highest_probs).float()
 
 
 class RatioOfConfidence(BaseUncertaintySampler):
@@ -135,21 +145,20 @@ class RatioOfConfidence(BaseUncertaintySampler):
         probs = probs.squeeze()
         highest_probs = torch.topk(probs, 2, dim=-1).values
         ratios = highest_probs[:, 0] / (highest_probs[:, 1] + eps)
-        mean_ratio = ratios.float().mean()
 
-        return -mean_ratio
+        return -ratios.float()
 
 
 class EntropySampler(BaseUncertaintySampler):
     def _calculate_uncertainty_score(self, probs, eps=1e-3):
         probs = probs.squeeze()
         entropies = -probs * torch.log2(probs)
-        return entropies.float().mean()
+        return entropies.float()
 
 
 class RandomSampler(BaseUncertaintySampler):
     def _calculate_uncertainty_score(self, probs):
-        return np.random.normal()
+        return np.random.uniform(size=probs.size(0))
 
 
 class BALDSampler(BaseUncertaintySampler):
@@ -163,7 +172,7 @@ class BALDSampler(BaseUncertaintySampler):
         mean_entropy_of_pred = -((probs * torch.log(probs)).sum(dim=-1)).mean(dim=0)
         entropy_of_mean_pred = -((probs.mean(dim=0))*torch.log(probs.mean(dim=0))).sum(dim=-1)
         token_scores = entropy_of_mean_pred - mean_entropy_of_pred
-        return token_scores.mean()
+        return token_scores
 
 
 class VarianceSampler(BaseUncertaintySampler):
@@ -175,7 +184,7 @@ class VarianceSampler(BaseUncertaintySampler):
 
     def _calculate_uncertainty_score(self, probs):
         Vars = self._calculate_variances(probs)
-        return Vars.mean()
+        return Vars
 
     def _calculate_variances(self, probs):
         # probs.shape = (T, N, C)
