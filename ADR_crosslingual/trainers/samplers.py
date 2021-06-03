@@ -43,7 +43,7 @@ class BaseUncertaintySampler:
             del samples
             original_lens = batched_samples.pop('original_lens', None)
 
-            for key, t in batched_samples:
+            for key, t in batched_samples.items():
                 batched_samples[key] = t.to(device)
 
             probs_list = []
