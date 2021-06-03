@@ -75,7 +75,7 @@ class BaseUncertaintySampler:
                 else:
                     k = int(token_scores.size(0) * self.averaging_share)
                     k = max(1, k)
-                    aggregated_score = torch.topk(token_scores, k, dim=0).mean()
+                    aggregated_score = torch.topk(token_scores, k, dim=0).values.mean()
 
                 scores.append(aggregated_score)
                 del cur_probs
@@ -158,7 +158,7 @@ class EntropySampler(BaseUncertaintySampler):
 
 class RandomSampler(BaseUncertaintySampler):
     def _calculate_uncertainty_score(self, probs):
-        return np.random.uniform(size=probs.size(0))
+        return torch.tensor(np.random.uniform(size=probs.size(0))).float()
 
 
 class BALDSampler(BaseUncertaintySampler):
