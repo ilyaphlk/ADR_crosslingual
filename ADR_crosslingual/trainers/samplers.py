@@ -4,7 +4,7 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy='confident', n_samples_out=1):
+    def __init__(self, strategy='confident', n_samples_out=1, scoring_batch_sz=1):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
@@ -14,9 +14,11 @@ class BaseUncertaintySampler:
         self.n_samples_out = n_samples_out
         self.stochastic = None
         self.n_forward_passes = 1
+        self.scoring_batch_sz = scoring_batch_sz
 
 
     def __call__(self, batch, model):
+        scoring_batch_sz = self.scoring_batch_sz
 
         model.eval()
         device = next(model.parameters()).device
@@ -34,24 +36,43 @@ class BaseUncertaintySampler:
         scores = []
         computed_logits = []
 
-        for i in range(N):
-            sample = {key : val[i,:].to(device).unsqueeze(0) for key, val in batch.items()}
+        for i in range(0, N, scoring_batch_sz):
+            samples = []
+            for j in range(i, min(N, i+scoring_batch_sz)):
+                samples.append({key : val[j,:] for key, val in batch.items()})
+
+            batched_samples = collate_dicts(samples)
+            del samples
+            original_lens = batched_samples.pop('original_lens', None)
+
+            for key, t in batched_samples.items():
+                batched_samples[key] = t.to(device)
+
             probs_list = []
-            logits = None
             for _ in range(self.n_forward_passes):
-                #logits = model(**sample).logits.squeeze()
                 with torch.no_grad():
                     probs = torch.nn.functional.softmax(
-                        model(**sample).logits.squeeze().to('cpu'),
+                        model(**batched_samples).logits.to('cpu'),
                         dim=-1
                     )
                     probs_list.append(probs)
 
-            probs = torch.stack(probs_list, dim=0)
-            scores.append(self._calculate_uncertainty_score(probs))
+            del batched_samples
 
-            del sample
-            torch.cuda.empty_cache()
+            probs = torch.stack(probs_list, dim=1)
+            for j in range(probs.size(0)):
+                #truncate probs:
+                cur_probs = probs[j,:,:,:]
+                if original_lens is not None:
+                    orig_len = original_lens[j]
+                    cur_probs = cur_probs[:, :orig_len, :]
+                scores.append(self._calculate_uncertainty_score(cur_probs))
+                del cur_probs
+            del original_lens
+            del probs
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             '''
             if not self.stochastic:
                 computed_logits.append({'teacher_logits':logits})
@@ -132,10 +153,11 @@ class RandomSampler(BaseUncertaintySampler):
 
 
 class BALDSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes):
+    def __init__(self, strategy, n_samples_out, n_forward_passes, scoring_batch_sz=1):
         super().__init__(strategy, n_samples_out)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
+        self.scoring_batch_sz = scoring_batch_sz
 
     def _calculate_uncertainty_score(self, probs):
         mean_entropy_of_pred = -((probs * torch.log(probs)).sum(dim=-1)).mean(dim=0)
@@ -145,10 +167,11 @@ class BALDSampler(BaseUncertaintySampler):
 
 
 class VarianceSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes):
+    def __init__(self, strategy, n_samples_out, n_forward_passes, scoring_batch_sz=1):
         super().__init__(strategy, n_samples_out)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
+        self.scoring_batch_sz = scoring_batch_sz
 
     def _calculate_uncertainty_score(self, probs):
         Vars = self._calculate_variances(probs)
@@ -158,7 +181,7 @@ class VarianceSampler(BaseUncertaintySampler):
         # probs.shape = (T, N, C)
         E = probs.mean(dim=0)  # shape = (N, C)
         Means = torch.diag(E @ E.T)  # shape = (N,)
-        P = probs @ probs.transpose(1, 2)  # shape = (T, N, N)
+        P = probs @ probs.transpose(-1, -2)  # shape = (T, N, N)
         P = P[:, np.arange(P.size(1)), np.arange(P.size(1))]  # shape = (T, N) - taking diagonals in a batch
         Vars = (P - Means).mean(dim=0)
         return Vars

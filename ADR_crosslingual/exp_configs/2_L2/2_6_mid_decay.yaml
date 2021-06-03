@@ -1,0 +1,46 @@
+teacher_config:
+  model_type:
+    'tokenizer': BertTokenizer
+    'config': BertConfig
+    'model': BertTokenClassifier
+    'subword_prefix': '##'
+  model_checkpoint: 'bert-base-multilingual-cased'
+  optimizer_class: AdamW
+  optimizer_kwargs:
+    'lr': 2e-5
+    'eps': 1e-8
+    'weight_decay': 0.05
+  train_batch_sz: 4
+  test_batch_sz: 4
+  epochs: 10
+  L2_coef: 0
+
+student_config:
+  model_type:
+    'tokenizer': BertTokenizer
+    'config': BertConfig
+    'model': BertTokenClassifier
+    'subword_prefix': '##'
+  model_checkpoint: 'bert-base-multilingual-cased'
+  optimizer_class: AdamW
+  optimizer_kwargs:
+    'lr': 2e-5
+    'eps': 1e-8
+  train_batch_sz: 4
+  test_batch_sz: 2
+  epochs: 0
+
+sampler_config:
+  sampler_class: MarginOfConfidenceSampler
+  sampler_kwargs:
+    'strategy': 'confident'
+    #'n_samples_out': student_config.train_batch_sz
+  n_samples_in: 10
+
+exp_config:
+  n_few_shot: 0
+  experiment_name: 'exp_2_6, mid_decay'
+  seed: 42
+  teacher_set: 'cadec'
+  student_set: 'small'
+  #common_tokenize: word_tokenize
