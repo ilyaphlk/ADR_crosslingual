@@ -12,7 +12,7 @@ import nltk
 nltk.download('punkt')
 from nltk.tokenize import word_tokenize
 
-from ADR_crosslingual.data.datasets import BratDataset
+from ADR_crosslingual.data.datasets import BratDataset, JsonDataset
 from ADR_crosslingual.data.splitter import BratSplitter
 from ADR_crosslingual.data.convert import webanno2brat
 import time
