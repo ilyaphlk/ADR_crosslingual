@@ -14,9 +14,11 @@ class BaseUncertaintySampler:
         self.n_samples_out = n_samples_out
         self.stochastic = None
         self.n_forward_passes = 1
+        self.scoring_batch_sz = 1
 
 
-    def __call__(self, batch, model, scoring_batch_sz=4):
+    def __call__(self, batch, model):
+        scoring_batch_sz = self.scoring_batch_sz
 
         model.eval()
         device = next(model.parameters()).device
@@ -65,6 +67,9 @@ class BaseUncertaintySampler:
                     orig_len = original_lens[j]
                     cur_probs = cur_probs[:, :orig_len, :]
                 scores.append(self._calculate_uncertainty_score(cur_probs))
+                del cur_probs
+            del original_lens
+            del probs
 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -148,10 +153,11 @@ class RandomSampler(BaseUncertaintySampler):
 
 
 class BALDSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes):
+    def __init__(self, strategy, n_samples_out, n_forward_passes, scoring_batch_sz=1):
         super().__init__(strategy, n_samples_out)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
+        self.scoring_batch_sz = scoring_batch_sz
 
     def _calculate_uncertainty_score(self, probs):
         mean_entropy_of_pred = -((probs * torch.log(probs)).sum(dim=-1)).mean(dim=0)
@@ -161,10 +167,11 @@ class BALDSampler(BaseUncertaintySampler):
 
 
 class VarianceSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes):
+    def __init__(self, strategy, n_samples_out, n_forward_passes, scoring_batch_sz=1):
         super().__init__(strategy, n_samples_out)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
+        self.scoring_batch_sz = scoring_batch_sz
 
     def _calculate_uncertainty_score(self, probs):
         Vars = self._calculate_variances(probs)
