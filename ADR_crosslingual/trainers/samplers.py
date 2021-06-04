@@ -165,8 +165,8 @@ class RandomSampler(BaseUncertaintySampler):
 
 
 class BALDSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes, scoring_batch_sz=1):
-        super().__init__(strategy, n_samples_out)
+    def __init__(self, strategy, n_samples_out, n_forward_passes=5, scoring_batch_sz=1, averaging_share=None):
+        super().__init__(strategy, n_samples_out, scoring_batch_sz, averaging_share)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
         self.scoring_batch_sz = scoring_batch_sz
@@ -179,11 +179,10 @@ class BALDSampler(BaseUncertaintySampler):
 
 
 class VarianceSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes, scoring_batch_sz=1):
-        super().__init__(strategy, n_samples_out)
+    def __init__(self, strategy, n_samples_out, n_forward_passes=5, scoring_batch_sz=1, averaging_share=None):
+        super().__init__(strategy, n_samples_out, scoring_batch_sz, averaging_share)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
-        self.scoring_batch_sz = scoring_batch_sz
 
     def _calculate_uncertainty_score(self, probs):
         Vars = self._calculate_variances(probs)
