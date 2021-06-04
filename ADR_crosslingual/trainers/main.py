@@ -514,6 +514,8 @@ def train_student(exp_config, device, last_successful_epoch,
         student_config.train_batch_sz
     )
 
+    per_epoch_size = (exp_config.n_few_shot // student_config.epochs) + 1
+
     (teacher_model, teacher_optimizer, collate_teacher) = teacher_args
     (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student) = student_args
 
@@ -523,7 +525,7 @@ def train_student(exp_config, device, last_successful_epoch,
 
         if exp_config.n_few_shot > 0:
             teacher_labeled_loader, student_labeled_loader = get_cur_labeled_loaders(cur_labeled_set, rudrec_labeled_b_sz,
-                rudrec_labeled_set, collate_teacher, collate_student)
+                rudrec_labeled_set, collate_teacher, collate_student, per_epoch_size)
 
         if exp_config.n_few_shot > 0:
             # first make a step with teacher for labeled samples
