@@ -15,7 +15,10 @@ class BaseUncertaintySampler:
         self.stochastic = None
         self.n_forward_passes = 1
         self.scoring_batch_sz = scoring_batch_sz
-        self.averaging_share = averaging_share if averaging_share is None else float(averaging_share)
+        if type(averaging_share) != float:
+            self.averaging_share = None
+        else:
+            self.averaging_share = averaging_share
 
 
     def __call__(self, batch, model):

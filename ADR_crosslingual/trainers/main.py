@@ -638,7 +638,7 @@ def main(path_to_yaml, runs_path,
 
     else:
         print('No GPU available, using the CPU instead.')
-        device = torch.device("cpu")    
+        device = torch.device("cpu")
 
 
     teacher_sets = {
