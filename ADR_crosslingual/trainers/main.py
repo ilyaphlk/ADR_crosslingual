@@ -668,6 +668,11 @@ def main(path_to_yaml, runs_path,
     writer = SummaryWriter(log_dir=os.path.join(runs_path, exp_config.experiment_name))
     writer.add_text('experiment_info', str(exp_config))
 
+    to_freeze = [teacher_model.bert.embeddings, *teacher_model.bert.encoder.layer[:2]]
+    for t in to_freeze:
+        for param in t.parameters():
+            param.requires_grad = False
+
     if do_train_teacher:
         train_teacher(exp_config, device,
                     teacher_model, teacher_optimizer, last_successful_epoch,
@@ -719,7 +724,7 @@ def main(path_to_yaml, runs_path,
     writer.flush()
 
     # final evaluation
-
+    '''
     eval_model(teacher_model, student_test_dataloader, teacher_config.epochs, device,
          logging_interval=10, tensorboard_writer=writer, tb_postfix=" (teacher, final, rudrec test)", print_progress=True,
          compute_metrics=compute_metrics, int2label=student_test_dataloader.int2label)
@@ -727,6 +732,6 @@ def main(path_to_yaml, runs_path,
     eval_model(student_model, student_test_dataloader, student_config.epochs, device,
          logging_interval=10, tensorboard_writer=writer, tb_postfix=" (student, final, rudrec test)", print_progress=True,
          compute_metrics=compute_metrics, int2label=student_test_dataloader.int2label)
-
+    '''
 
     return writer
