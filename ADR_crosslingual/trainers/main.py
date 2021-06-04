@@ -680,6 +680,12 @@ def main(path_to_yaml, runs_path,
     if torch.cuda.is_available():
         print(torch.cuda.memory_summary(0))
 
+    # freeze teacher embedding layer
+
+    to_freeze = [teacher_model.bert.embeddings, *teacher_model.bert.encoder.layer[:2]]
+    for t in to_freeze:
+        for param in t.parameters():
+            param.requires_grad = False
 
 
     ############################
