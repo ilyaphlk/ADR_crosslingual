@@ -151,10 +151,12 @@ def make_cadec(folds_dir, exp_config):
                             label2int=cadec_train_set.label2int,
                             kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
+    '''
     for idx, elem in enumerate(cadec_train_set):
         s = elem['input_ids'].shape
         for key, t in elem.items():
             assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
+    '''
 
 
     return cadec_train_set, cadec_test_set
@@ -206,11 +208,12 @@ def make_psytar(folds_dir, exp_config, batched=True):
     psytar_test_set = BratDataset(test_fold_dir, "test", teacher_tokenizer,
                              label2int=psytar_train_set.label2int,
                              kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
-
+    '''
     for idx, elem in enumerate(psytar_test_set):
         s = elem['input_ids'].shape
         for key, t in elem.items():
             assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
+    '''
 
     return psytar_train_set, psytar_test_set
 
@@ -223,10 +226,12 @@ def make_rudrec(folds_dir, exp_config):
     rudrec_folds_dir = folds_dir
 
     train_share = exp_config.n_few_shot / rudrec_size
+    test_share = 0.1
+    unlabeled_share = 1 - train_share - test_share
 
-    # we will be using dev fold as our (artificially) unlabeled data - hence its larger share
+    # to fix the test set in place, we flip the dev and test folds
     rudrec_splitter = BratSplitter(rudrec_brat_dir+"/text", rudrec_brat_dir+"/annotation", rudrec_folds_dir,
-                                   train_share, 0.1, 0.8,
+                                   train_share, unlabeled_share, test_share,
                                     name_postfix='_rudrec', random_state=exp_config.seed, shuffle=True)
 
     rudrec_splitter.split()
@@ -242,18 +247,20 @@ def make_rudrec(folds_dir, exp_config):
     rudrec_labeled_set = BratDataset(rudrec_folds_dir+"/train"+rudrec_splitter.name_postfix, "train", student_tokenizer,
                         kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
-    rudrec_test_set = BratDataset(rudrec_folds_dir+"/test"+rudrec_splitter.name_postfix, "test", student_tokenizer,
+    rudrec_test_set = BratDataset(rudrec_folds_dir+"/dev"+rudrec_splitter.name_postfix, "test", student_tokenizer,
                         label2int=rudrec_labeled_set.label2int,
                         kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
-    rudrec_unlabeled_set = BratDataset(rudrec_folds_dir+"/dev"+rudrec_splitter.name_postfix, "dev", student_tokenizer,
+    rudrec_unlabeled_set = BratDataset(rudrec_folds_dir+"/test"+rudrec_splitter.name_postfix, "dev", student_tokenizer,
                        labeled=False,
                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True)
 
+    '''
     for idx, elem in enumerate(rudrec_test_set):
         s = elem['input_ids'].shape
         for key, t in elem.items():
             assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
+    '''
 
     return rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set
 
