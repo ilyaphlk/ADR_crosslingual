@@ -716,4 +716,17 @@ def main(path_to_yaml, runs_path,
                       teacher_args, student_args,
                       sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
 
+    writer.flush()
+
+    # final evaluation
+
+    eval_model(teacher_model, student_test_dataloader, teacher_config.epochs, device,
+         logging_interval=10, tensorboard_writer=writer, tb_postfix=" (teacher, final, rudrec test)", print_progress=True,
+         compute_metrics=compute_metrics, int2label=student_test_dataloader.int2label)
+
+    eval_model(student_model, student_test_dataloader, student_config.epochs, device,
+         logging_interval=10, tensorboard_writer=writer, tb_postfix=" (student, final, rudrec test)", print_progress=True,
+         compute_metrics=compute_metrics, int2label=student_test_dataloader.int2label)
+
+
     return writer
