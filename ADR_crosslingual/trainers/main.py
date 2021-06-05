@@ -514,7 +514,7 @@ def train_student(exp_config, device, last_successful_epoch,
         student_config.train_batch_sz
     )
 
-    per_epoch_size = (exp_config.n_few_shot // student_config.epochs) + 1
+    per_epoch_size = exp_config.n_few_shot # IN THIS BRANCH ONLY: placeholder to fine-tune teacher, basically
 
     (teacher_model, teacher_optimizer, collate_teacher) = teacher_args
     (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student) = student_args
