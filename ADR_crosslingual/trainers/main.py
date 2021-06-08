@@ -406,6 +406,8 @@ def main(path_to_yaml, runs_path,
     rudrec_big_labeled_set.int2label = big_unlabeled_set.int2label
     rudrec_big_labeled_set.num_labels = big_unlabeled_set.num_labels
 
+    print('main, len rudrec_big_labeled_set:', len(rudrec_big_labeled_set))
+
     (cadec_train_set, cadec_test_set) = cadec_tuple 
     (psytar_train_set, psytar_test_set) = psytar_tuple 
     (rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set) = rudrec_tuple 
@@ -501,9 +503,10 @@ def main(path_to_yaml, runs_path,
     big_labeled_dataloader = DataLoader(
         rudrec_big_labeled_set,
         batch_size=student_config.test_batch_sz,
-        collate_fn=collate_teacher,
+        collate_fn=collate_student,
     )
 
+    print('big labeled dataloader len', len(big_labeled_dataloader))
 
     if do_train_student:
         train_student(exp_config, device, last_successful_epoch,

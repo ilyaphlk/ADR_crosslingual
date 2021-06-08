@@ -191,6 +191,8 @@ def make_rudrec(folds_dir, exp_config):
                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
                        to_sentences=exp_config.to_sentences)
 
+    print("len unlabeled, len big labeled:", len(rudrec_unlabeled_set), len(rudrec_big_labeled_set))
+
 
     '''
     for idx, elem in enumerate(rudrec_test_set):
