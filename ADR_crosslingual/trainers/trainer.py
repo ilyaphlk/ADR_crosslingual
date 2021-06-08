@@ -136,6 +136,7 @@ def eval_model(model, dataloader, cur_epoch, device,
         if compute_metrics is not None:
             int2label = dataloader.dataset.int2label if int2label is None else int2label
             metrics = compute_metrics(label_ids, preds_ids, int2label)
+            print(tb_postfix, metrics)
             tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
         
     if print_progress:
