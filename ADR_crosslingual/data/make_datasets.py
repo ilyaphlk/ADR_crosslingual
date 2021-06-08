@@ -186,6 +186,12 @@ def make_rudrec(folds_dir, exp_config):
                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
                        to_sentences=exp_config.to_sentences)
 
+    rudrec_big_labeled_set = BratDataset(rudrec_folds_dir+"/test"+rudrec_splitter.name_postfix, "dev", student_tokenizer,
+                       label2int=rudrec_labeled_set.label2int,
+                       kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                       to_sentences=exp_config.to_sentences)
+
+
     '''
     for idx, elem in enumerate(rudrec_test_set):
         s = elem['input_ids'].shape
@@ -193,7 +199,7 @@ def make_rudrec(folds_dir, exp_config):
             assert t.shape == s, f"idx = {idx}, mismatch in tensor shapes"
     '''
 
-    return rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set
+    return rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set, rudrec_big_labeled_set
 
 
 def make_mappers(exp_config):
@@ -239,7 +245,7 @@ def unify_data(rudrec_to_cadec, psytar_to_cadec, cadec_train_set,
 
     big_unlabeled_set.label2int = rudrec_labeled_set.label2int
     big_unlabeled_set.int2label = rudrec_labeled_set.int2label
-    big_unlabeled_set.num_labels = rudrec_labeled_set.num_labels    
+    big_unlabeled_set.num_labels = rudrec_labeled_set.num_labels  
 
 
 
@@ -282,7 +288,7 @@ def make_datasets(exp_config):
 
     psytar_train_set, psytar_test_set = make_psytar(folds_dir, exp_config)
 
-    rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set = make_rudrec(folds_dir, exp_config)
+    rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set, rudrec_big_labeled_set = make_rudrec(folds_dir, exp_config)
 
     json_dir = './consumers_drugs_reviews.json'
 
@@ -322,5 +328,5 @@ def make_datasets(exp_config):
     print(len(rudrec_labeled_set), len(rudrec_labeled_set), len(rudrec_unlabeled_set))
     print(len(big_unlabeled_set))
 
-    return cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set
+    return cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set, rudrec_big_labeled_set
 

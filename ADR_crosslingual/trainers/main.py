@@ -297,7 +297,9 @@ def make_student(exp_config, device, student_sets, teacher_train_set, checkpoint
 
 def train_student(exp_config, device, last_successful_epoch,
                   teacher_args, student_args,
-                  sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path):
+                  sampler, writer, rudrec_labeled_set, cur_labeled_set,
+                  student_save_path, teacher_save_path,
+                  big_labeled_loader):
 
     teacher_config = exp_config.teacher_config
     student_config = exp_config.student_config
@@ -349,6 +351,10 @@ def train_student(exp_config, device, last_successful_epoch,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (student, test, rudrec)',
              compute_metrics=compute_metrics)
 
+        eval_model(student_model, big_labeled_loader, epoch_i, device,
+             logging_interval=10, tensorboard_writer=writer, tb_postfix=' (student, big_test, rudrec)',
+             compute_metrics=compute_metrics)
+
 
         if student_save_path is not None:
             student_checkpoint_dict = {
@@ -394,7 +400,11 @@ def main(path_to_yaml, runs_path,
     student_config = exp_config.student_config
 
 
-    cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set = make_datasets(exp_config)
+    cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set, rudrec_big_labeled_set = make_datasets(exp_config)
+
+    rudrec_big_labeled_set.label2int = big_unlabeled_set.label2int
+    rudrec_big_labeled_set.int2label = big_unlabeled_set.int2label
+    rudrec_big_labeled_set.num_labels = big_unlabeled_set.num_labels
 
     (cadec_train_set, cadec_test_set) = cadec_tuple 
     (psytar_train_set, psytar_test_set) = psytar_tuple 
@@ -488,10 +498,19 @@ def main(path_to_yaml, runs_path,
     teacher_args = (teacher_model, teacher_optimizer, collate_teacher)
     student_args = (student_model, student_optimizer, student_unlabeled_dataloader, student_test_dataloader, collate_student)
 
+    big_labeled_dataloader = DataLoader(
+        rudrec_big_labeled_set,
+        batch_size=student_config.test_batch_sz,
+        collate_fn=collate_teacher,
+    )
+
+
     if do_train_student:
         train_student(exp_config, device, last_successful_epoch,
                       teacher_args, student_args,
-                      sampler, writer, rudrec_labeled_set, cur_labeled_set, student_save_path, teacher_save_path)
+                      sampler, writer, rudrec_labeled_set, cur_labeled_set,
+                      student_save_path, teacher_save_path,
+                      big_labeled_dataloader)
 
     writer.flush()
 
@@ -504,6 +523,9 @@ def main(path_to_yaml, runs_path,
     eval_model(student_model, student_test_dataloader, student_config.epochs, device,
          logging_interval=10, tensorboard_writer=writer, tb_postfix=" (student, final, rudrec test)", print_progress=True,
          compute_metrics=compute_metrics, int2label=teacher_train_set.int2label)
+
+
+
     
 
     return writer
