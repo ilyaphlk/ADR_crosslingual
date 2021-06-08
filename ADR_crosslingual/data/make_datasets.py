@@ -65,11 +65,13 @@ def make_cadec(folds_dir, exp_config):
 
     is_binary = (exp_config.classification_type == 'binary')
     cadec_train_set = BratDataset(folds_dir+"/train"+cadec_splitter.name_postfix, "train", teacher_tokenizer,
-                         kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                         kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                         to_sentences=exp_config.to_sentences)
 
     cadec_test_set = BratDataset(folds_dir+"/test"+cadec_splitter.name_postfix, "test", teacher_tokenizer,
                             label2int=cadec_train_set.label2int,
-                            kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                            kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                            to_sentences=exp_config.to_sentences)
 
     '''
     for idx, elem in enumerate(cadec_train_set):
@@ -125,11 +127,13 @@ def make_psytar(folds_dir, exp_config, batched=True):
 
     is_binary = (exp_config.classification_type == 'binary')
     psytar_train_set = BratDataset(train_fold_dir, "train", teacher_tokenizer,
-                         kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                         kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                         to_sentences=exp_config.to_sentences)
 
     psytar_test_set = BratDataset(test_fold_dir, "test", teacher_tokenizer,
                              label2int=psytar_train_set.label2int,
-                             kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                             kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                             to_sentences=exp_config.to_sentences)
     '''
     for idx, elem in enumerate(psytar_test_set):
         s = elem['input_ids'].shape
@@ -169,15 +173,18 @@ def make_rudrec(folds_dir, exp_config):
     is_binary = (exp_config.classification_type == 'binary')
 
     rudrec_labeled_set = BratDataset(rudrec_folds_dir+"/train"+rudrec_splitter.name_postfix, "train", student_tokenizer,
-                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                        to_sentences=exp_config.to_sentences)
 
     rudrec_test_set = BratDataset(rudrec_folds_dir+"/dev"+rudrec_splitter.name_postfix, "test", student_tokenizer,
                         label2int=rudrec_labeled_set.label2int,
-                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                        kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                        to_sentences=exp_config.to_sentences)
 
     rudrec_unlabeled_set = BratDataset(rudrec_folds_dir+"/test"+rudrec_splitter.name_postfix, "dev", student_tokenizer,
                        labeled=False,
-                       kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary)
+                       kwargsDataset=bratlike_dict, random_state=exp_config.seed, shuffle=True, is_binary=is_binary,
+                       to_sentences=exp_config.to_sentences)
 
     '''
     for idx, elem in enumerate(rudrec_test_set):
@@ -281,7 +288,8 @@ def make_datasets(exp_config):
 
     big_unlabeled_set = JsonDataset(json_dir, teacher_tokenizer,
         labeled=False, sample_count=exp_config.big_set_sample_cnt,
-        random_state=exp_config.seed, shuffle=True, tokenize=exp_config.common_tokenize)
+        random_state=exp_config.seed, shuffle=True, tokenize=exp_config.common_tokenize,
+        to_sentences=exp_config.to_sentences)
 
     ############################
     ### make sure the labels are consistent
@@ -308,6 +316,11 @@ def make_datasets(exp_config):
     psytar_tuple = (psytar_train_set, psytar_test_set)
     rudrec_tuple = (rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set)
     joined_tuple = (joined_train_set, joined_test_set)
+
+    print(len(cadec_train_set), len(cadec_test_set))
+    print(len(psytar_train_set), len(psytar_test_set))
+    print(len(rudrec_labeled_set), len(rudrec_labeled_set), len(rudrec_unlabeled_set))
+    print(len(big_unlabeled_set))
 
     return cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set
 

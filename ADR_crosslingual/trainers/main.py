@@ -113,7 +113,8 @@ def read_yaml_config(path_to_yaml):
         student_set=exp_cfg.get('student_set', 'small'),
         classification_type=exp_cfg.get('classification_type', 'multiclass'),
         init_with_teacher=exp_cfg.get('init_with_teacher', False),
-        big_set_sample_cnt=exp_cfg.get('big_set_sample_cnt', 0)
+        big_set_sample_cnt=exp_cfg.get('big_set_sample_cnt', 0),
+        to_sentences=exp_cfg.get('to_sentences', False)
     )
     common_tokenize=exp_cfg.get('common_tokenize', None)
     if common_tokenize is not None:

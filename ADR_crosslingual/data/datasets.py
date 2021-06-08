@@ -6,6 +6,7 @@ import numpy as np
 from NLPDatasetIO.dataset import Dataset
 from transformers import BertTokenizer, XLMTokenizer
 import json
+from nltk.tokenize import sent_tokenize
 
 
 class BratDataset(torch.utils.data.Dataset):
@@ -133,7 +134,8 @@ class BratDataset(torch.utils.data.Dataset):
 
 class JsonDataset(torch.utils.data.Dataset):
     def __init__(self, path_to_json, tokenizer, labeled=False, sample_count=None,
-        random_state=None, shuffle=False, datasets_iter=None, tokenize=None):
+        random_state=None, shuffle=False, datasets_iter=None, tokenize=None,
+        to_sentences=False):
         '''
           
         '''
@@ -141,12 +143,17 @@ class JsonDataset(torch.utils.data.Dataset):
         self.documents = []
         self.tokenizer = tokenizer
         self.tokenize = tokenize if tokenize is not None else tokenizer.tokenize
+        self.to_sentences = to_sentences
         with open(path_to_json) as json_file:
             data = json.load(json_file)
             for p in data:
                 text = p.get('comment', None)
                 if text is not None and text != '':
-                    self.documents.append(text)
+                    if self.to_sentences:
+                        sentences = sent_tokenize(text)
+                        self.documents.extend(sentences)
+                    else:
+                        self.documents.append(text)
 
         self.labeled = labeled
         self.labels = []
