@@ -330,7 +330,7 @@ def make_datasets(exp_config):
 
     print(len(cadec_train_set), len(cadec_test_set))
     print(len(psytar_train_set), len(psytar_test_set))
-    print(len(rudrec_labeled_set), len(rudrec_labeled_set), len(rudrec_unlabeled_set))
+    print(len(rudrec_labeled_set), len(rudrec_test_set), len(rudrec_unlabeled_set))
     print(len(big_unlabeled_set))
 
     return cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set, rudrec_big_labeled_set
