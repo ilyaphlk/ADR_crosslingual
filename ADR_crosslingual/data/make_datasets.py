@@ -230,6 +230,7 @@ def make_datasets(exp_config):
     folds_dir = './folds'  
 
     cadec_train_set, cadec_test_set = make_cadec(folds_dir, exp_config)
+    print("set of labels:", cadec_train_set.label_set)
 
     psytar_train_set, psytar_test_set = make_psytar(folds_dir, exp_config)
 
@@ -251,7 +252,7 @@ def make_datasets(exp_config):
                cadec_train_set,
                rudrec_labeled_set, rudrec_test_set, rudrec_unlabeled_set,
                psytar_train_set, psytar_test_set,
-               big_unlabeled_set)joined_train_set, joined_test_set
+               big_unlabeled_set)
 
     ############################
     # make a joined set
