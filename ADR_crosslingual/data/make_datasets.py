@@ -149,13 +149,14 @@ def make_rudrec(folds_dir, exp_config):
     rudrec_brat_dir = './rudrec_brat'
     rudrec_size = webanno2brat('./rudrec_labeled', rudrec_brat_dir)
     if exp_config.to_sentences:
-        rudrec_size = 9700
+        rudrec_size = 4776
 
     rudrec_folds_dir = folds_dir
 
     train_share = exp_config.n_few_shot / rudrec_size
     test_share = 0.1
-    unlabeled_share = 1 - train_share - test_share
+    unlabeled_share = 1. - train_share - test_share
+    print("shares:", train_share, test_share, unlabeled_share)
 
     # to fix the test set in place, we flip the dev and test folds
     rudrec_splitter = BratSplitter(rudrec_brat_dir+"/text", rudrec_brat_dir+"/annotation", rudrec_folds_dir,
