@@ -148,6 +148,8 @@ def make_rudrec(folds_dir, exp_config):
     student_config = exp_config.student_config
     rudrec_brat_dir = './rudrec_brat'
     rudrec_size = webanno2brat('./rudrec_labeled', rudrec_brat_dir)
+    if exp_config.to_sentences:
+        rudrec_size = 9700
 
     rudrec_folds_dir = folds_dir
 
