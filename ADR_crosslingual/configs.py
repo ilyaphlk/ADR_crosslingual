@@ -78,7 +78,7 @@ class ExperimentConfig:
     classification_type: str = "multiclass"
     big_set_sample_cnt: int = 0
     init_with_teacher: bool = False
-    to_sentences: False
+    to_sentences: bool = False
 
 
     def __str__(self):
