@@ -207,7 +207,8 @@ def train_teacher(exp_config, device,
         if rudrec_control_dataloader is not None:
             eval_model(teacher_model, rudrec_control_dataloader, epoch_i, device,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, rudrec_control)',
-             compute_metrics=compute_metrics)
+             compute_metrics=compute_metrics,
+             int2label=teacher_train_dataloader.dataset.int2label)
 
 
         if teacher_save_path is not None:
