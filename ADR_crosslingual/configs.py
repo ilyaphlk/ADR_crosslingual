@@ -90,6 +90,7 @@ class ExperimentConfig:
                          "init_with_teacher = "+str(self.init_with_teacher)+"; \n",
                          "common_tokenize = "+str(self.common_tokenize)+"; \n",
                          "classification_type = "+str(self.classification_type)+"; \n",
+                         "to_sentences = "+str(self.to_sentences)+"; \n",
                          "teacher:\n"+str(self.teacher_config)+"\n",
                          "student:\n"+str(self.student_config)+"\n",
                          "sampler:\n"+str(self.sampler_config)])

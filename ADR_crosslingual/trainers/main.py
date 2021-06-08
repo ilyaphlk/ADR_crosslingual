@@ -183,7 +183,7 @@ def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):
 def train_teacher(exp_config, device,
                 teacher_model, teacher_optimizer, last_successful_epoch,
                 teacher_train_dataloader, teacher_test_dataloader,
-                writer, teacher_save_path):
+                writer, teacher_save_path, rudrec_control_dataloader=None):
     teacher_config = exp_config.teacher_config
 
     model_initial = None
@@ -203,6 +203,12 @@ def train_teacher(exp_config, device,
         eval_model(teacher_model, teacher_test_dataloader, epoch_i, device,
              logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, source language)',
              compute_metrics=compute_metrics)
+
+        if rudrec_control_dataloader is not None:
+            eval_model(teacher_model, rudrec_control_dataloader, epoch_i, device,
+             logging_interval=10, tensorboard_writer=writer, tb_postfix=' (teacher, test, rudrec_control)',
+             compute_metrics=compute_metrics)
+
 
         if teacher_save_path is not None:
             teacher_checkpoint_dict = {
@@ -425,6 +431,12 @@ def main(path_to_yaml, runs_path,
     teacher_train_dataloader, teacher_test_dataloader, collate_teacher) = make_teacher(exp_config, device,
                                                                                         teacher_sets, teacher_load_path)
 
+    rudrec_control_dataloader = DataLoader(
+        [rudrec_labeled_set[idx] for idx in range(min(100, len(rudrec_labeled_set)))],
+        batch_size=teacher_config.test_batch_sz,
+        collate_fn=collate_teacher,
+    )
+
     ############################
     ############ train a teacher
     ############################    
@@ -432,6 +444,7 @@ def main(path_to_yaml, runs_path,
     writer = SummaryWriter(log_dir=os.path.join(runs_path, exp_config.experiment_name))
     writer.add_text('experiment_info', str(exp_config))
 
+    # freeze bottom layers
     to_freeze = [teacher_model.bert.embeddings, *teacher_model.bert.encoder.layer[:2]]
     for t in to_freeze:
         for param in t.parameters():
@@ -441,20 +454,14 @@ def main(path_to_yaml, runs_path,
         train_teacher(exp_config, device,
                     teacher_model, teacher_optimizer, last_successful_epoch,
                     teacher_train_dataloader, teacher_test_dataloader,
-                    writer, teacher_save_path)
+                    writer, teacher_save_path, rudrec_control_dataloader)
 
     del teacher_train_dataloader
     del teacher_test_dataloader
+    del rudrec_control_dataloader
     #torch.cuda.empty_cache()
     if torch.cuda.is_available():
         print(torch.cuda.memory_summary(0))
-
-    # freeze teacher embedding layer
-
-    to_freeze = [teacher_model.bert.embeddings, *teacher_model.bert.encoder.layer[:2]]
-    for t in to_freeze:
-        for param in t.parameters():
-            param.requires_grad = False
 
 
     ############################
@@ -488,14 +495,14 @@ def main(path_to_yaml, runs_path,
     writer.flush()
 
     # final evaluation
-    '''
+    
     eval_model(teacher_model, student_test_dataloader, teacher_config.epochs, device,
          logging_interval=10, tensorboard_writer=writer, tb_postfix=" (teacher, final, rudrec test)", print_progress=True,
-         compute_metrics=compute_metrics, int2label=student_test_dataloader.int2label)
+         compute_metrics=compute_metrics, int2label=teacher_train_set.int2label)
 
     eval_model(student_model, student_test_dataloader, student_config.epochs, device,
          logging_interval=10, tensorboard_writer=writer, tb_postfix=" (student, final, rudrec test)", print_progress=True,
-         compute_metrics=compute_metrics, int2label=student_test_dataloader.int2label)
-    '''
+         compute_metrics=compute_metrics, int2label=teacher_train_set.int2label)
+    
 
     return writer
