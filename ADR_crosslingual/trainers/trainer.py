@@ -126,8 +126,9 @@ def eval_model(model, dataloader, cur_epoch, device,
             del original_lens_batch
 
             del result
-
-    avg_val_loss = total_eval_loss / len(dataloader)
+    avg_val_loss = 0
+    if len(dataloader) > 0:
+        avg_val_loss = total_eval_loss / len(dataloader)
     validation_time = format_time(time.time() - t0)
 
 
