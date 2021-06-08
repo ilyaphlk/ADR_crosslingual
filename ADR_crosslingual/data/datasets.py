@@ -10,7 +10,7 @@ import json
 
 class BratDataset(torch.utils.data.Dataset):
     def __init__(self, fold_path, fold_type, tokenizer, labeled=True, label2int=None, kwargsDataset={'format':'brat'},
-                 to_sentences=False, random_state=None, shuffle=False, datasets_iter=None):
+                 to_sentences=False, random_state=None, shuffle=False, datasets_iter=None, is_binary=False):
         '''
           fold_path: path to fold folder, must contain corresponding .txt and .ann files
           fold_type: 'train', 'dev' or 'test'
@@ -40,6 +40,7 @@ class BratDataset(torch.utils.data.Dataset):
 
         self.tokenizer = tokenizer
         self.labeled = labeled
+        self.is_binary = is_binary
 
         if self.labeled:
             if datasets_iter is None:
@@ -48,6 +49,10 @@ class BratDataset(torch.utils.data.Dataset):
                 self.labels = []
                 for dataset in datasets_iter:
                     self.labels.extend(dataset.labels)
+
+            if self.is_binary: # make it ADR vs Other
+                for idx, doc_labels in enumerate(self.labels):
+                    self.labels[idx] = list(map(lambda label: label if 'ADR' in label else 'O', doc_labels))
 
             self.set_label_info(label2int)
 
