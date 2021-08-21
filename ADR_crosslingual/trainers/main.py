@@ -94,7 +94,9 @@ def read_yaml_config(path_to_yaml):
         sampler_kwargs={'strategy':spl_cfg['sampler_kwargs']['strategy'],
                         'n_samples_out':spl_cfg['sampler_kwargs'].get('n_samples_out', student_config.train_batch_sz),
                         'scoring_batch_sz':spl_cfg['sampler_kwargs'].get('scoring_batch_sz', 1),
-                        'averaging_share':spl_cfg['sampler_kwargs'].get('averaging_share', None)},
+                        'averaging_share':spl_cfg['sampler_kwargs'].get('averaging_share', None),
+                        'return_vars':spl_cfg['sampler_kwargs'].get('return_vars', False),
+                        },
         n_samples_in= spl_cfg['n_samples_in'],
         
     )
@@ -124,9 +126,6 @@ def read_yaml_config(path_to_yaml):
         assert teacher_config.model_type['model'] == student_config.model_type['model']
 
     return exp_config
-
-
-
 
 
 def make_teacher(exp_config, device, teacher_sets, checkpoint_path=None):

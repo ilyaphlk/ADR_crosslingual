@@ -7,7 +7,19 @@ from transformers import (
     XLMPreTrainedModel, XLMModel,
 )
 
-from transformers.models.bert.modeling_bert import TokenClassifierOutput 
+from transformers.models.bert.modeling_bert import TokenClassifierOutput
+
+
+def custom_mse(output, target, variances=None):
+    if variances is None:
+        return torch.mean((output - target)**2)
+    return torch.mean((output - target)**2 * variances)
+
+
+class ModelOutput(TokenClassifierOutput):
+    def __init__(self, loss, logits=None, loss_float=None, hidden_states=None, attentions=None):
+        super().__init__(loss, logits, hidden_states, attentions)
+        self.loss_float = loss_float
 
 
 class BertTokenClassifier(BertPreTrainedModel):
@@ -35,6 +47,7 @@ class BertTokenClassifier(BertPreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        samples_variances=None
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
@@ -61,7 +74,7 @@ class BertTokenClassifier(BertPreTrainedModel):
         logits = self.classifier(sequence_output)
 
         loss = None
-
+        loss_float = None
         if labels is not None:
             loss_fct = CrossEntropyLoss()
             # Only keep active parts of the loss
@@ -76,27 +89,33 @@ class BertTokenClassifier(BertPreTrainedModel):
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
         elif teacher_logits is not None:
-            loss_fct = MSELoss(reduction="mean")
+            #loss_fct = MSELoss(reduction="mean")
+            loss_fct = custom_mse
             probs = torch.nn.functional.softmax(logits, dim=-1)
             src_probs = torch.nn.functional.softmax(teacher_logits, dim=-1)
             if attention_mask is not None:
                 active_loss = attention_mask.view(-1) == 1
                 #inactive_subword = labels.view(-1) == loss_ignore_index
                 #active_loss[inactive_subword] = 0
-                active_probs = probs.view(-1, self.num_labels)[active_loss]
-                active_src_probs = src_probs.view(-1, self.num_labels)[active_loss]
+                probs = probs.view(-1, self.num_labels)[active_loss]
+                src_probs = src_probs.view(-1, self.num_labels)[active_loss]
 
-                loss = loss_fct(active_probs, active_src_probs)
-            else:
-                loss = loss_fct(probs, src_probs)
+            loss = loss_fct(probs, src_probs, samples_variances)
+
+        if samples_variances is None:
+            loss_float = float(loss)
+        else:
+            loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
+
 
         if not return_dict:
             output = (logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
 
-        return TokenClassifierOutput(
+        return ModelOutput(
             loss=loss,
             logits=logits,
+            loss_float=loss_float,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )

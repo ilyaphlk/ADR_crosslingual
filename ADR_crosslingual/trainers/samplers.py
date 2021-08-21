@@ -4,7 +4,13 @@ from ADR_crosslingual.utils import collate_dicts
 
 
 class BaseUncertaintySampler:
-    def __init__(self, strategy='confident', n_samples_out=1, scoring_batch_sz=1, averaging_share=None):
+    def __init__(
+        self,
+        strategy='confident',
+        n_samples_out=1,
+        scoring_batch_sz=1,
+        averaging_share=None,
+        return_vars=False):
         '''
           strategy - whether to return samples in which the model is confident the most, the least or inbetween
           n_samples_out - how many samples should be selected from the batch
@@ -19,6 +25,7 @@ class BaseUncertaintySampler:
             self.averaging_share = None
         else:
             self.averaging_share = averaging_share
+        self.return_vars = return_vars
 
 
     def __call__(self, batch, model):
@@ -63,7 +70,8 @@ class BaseUncertaintySampler:
 
             del batched_samples
 
-            probs = torch.stack(probs_list, dim=1)
+            probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
+            del probs_list
             for j in range(probs.size(0)):
                 #truncate probs:
                 cur_probs = probs[j,:,:,:]
@@ -82,6 +90,7 @@ class BaseUncertaintySampler:
 
                 scores.append(aggregated_score)
                 del cur_probs
+            
             del original_lens
             del probs
 
@@ -104,11 +113,47 @@ class BaseUncertaintySampler:
 
         filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
 
-        '''
-        if not self.stochastic:
-            computed_logits_batch = collate_dicts(computed_logits, return_lens=False)['teacher_logits']
-            filtered_batch['teacher_logits'] = computed_logits_batch[idx_selected,:]
-        '''
+
+        ###############
+        ### explicitly compute prediction variances
+        ###############
+        filtered_batch['samples_variances'] = None
+
+        if self.return_vars:
+
+            samples_variances = []
+            model.train()
+
+            probs_list = []
+            for _ in range(self.n_forward_passes):
+                with torch.no_grad():
+                    probs = torch.nn.functional.softmax(
+                        model(**filtered_batch).logits.to('cpu'),
+                        dim=-1
+                    )
+                    probs_list.append(probs)
+
+            probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
+            del probs_list
+
+            var_sampler = VarianceSampler(None, None)  # should make a static method instead
+            for j in range(probs.size(0)):
+                #truncate probs:
+                cur_probs = probs[j,:,:,:]
+                orig_len = len(filtered_batch['input_ids'][j]) # TODO sketchy?
+                cur_probs = cur_probs[:, :orig_len, :]
+
+                token_variances = var_sampler._calculate_variances(cur_probs)
+                
+                samples_variances.append(token_variances)
+                del cur_probs
+            
+            del probs
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            filtered_batch['samples_variances'] = torch.tensor(samples_variances)  # samples_variances to tensor
 
         return filtered_batch
 

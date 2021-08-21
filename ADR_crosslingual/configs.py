@@ -50,7 +50,8 @@ class SamplerConfig:
         sampler_class=None,
         sampler_kwargs={
             'strategy':None,
-            'n_samples_out':None
+            'n_samples_out':None,
+            'return_vars':False
         },
         n_samples_in=None
     ):
@@ -61,7 +62,8 @@ class SamplerConfig:
     def __str__(self):
         return "\n".join(["sampler = ", str(self.sampler_class),
                           "sampler_args = ", str(self.sampler_kwargs),
-                          "n_samples_in = ", str(self.n_samples_in)])
+                          "n_samples_in = ", str(self.n_samples_in),
+                          ])
 
 
 @dataclass
@@ -93,4 +95,5 @@ class ExperimentConfig:
                          "to_sentences = "+str(self.to_sentences)+"; \n",
                          "teacher:\n"+str(self.teacher_config)+"\n",
                          "student:\n"+str(self.student_config)+"\n",
-                         "sampler:\n"+str(self.sampler_config)])
+                         "sampler:\n"+str(self.sampler_config)+"\n",
+                         ])
