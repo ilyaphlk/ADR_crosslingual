@@ -114,7 +114,7 @@ class BaseUncertaintySampler:
 
         filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
         original_lens = original_lens[idx_selected]
-        filtered_batch['original_lens'] = original_lens
+        filtered_batch['original_lens'] = original_lens.to(device)
 
         ###############
         ### explicitly compute prediction variances
