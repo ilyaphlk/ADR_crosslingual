@@ -105,10 +105,7 @@ class BertTokenClassifier(BertPreTrainedModel):
 
             loss = loss_fct(probs, src_probs, samples_variances)
 
-        if samples_variances is None:
-            loss_float = float(loss)
-        else:
-            loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
+        loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
 
 
         if not return_dict:
