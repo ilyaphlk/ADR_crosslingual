@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from ADR_crosslingual.utils import collate_dicts
+from torch.nn.utils.rnn import pad_sequence
 
 
 class BaseUncertaintySampler:
@@ -146,7 +147,7 @@ class BaseUncertaintySampler:
 
                 token_variances = var_sampler._calculate_variances(cur_probs)
                 
-                samples_variances.append(token_variances)
+                samples_variances.append(torch.tensor(token_variances))
                 del cur_probs
             
             del probs
