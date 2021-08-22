@@ -137,7 +137,7 @@ class BaseUncertaintySampler:
             probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
             del probs_list
 
-            var_sampler = VarianceSampler(None, None)  # should make a static method instead
+            var_sampler = VarianceSampler('uncertain', 1)  # should make a static method instead
             for j in range(probs.size(0)):
                 #truncate probs:
                 cur_probs = probs[j,:,:,:]
