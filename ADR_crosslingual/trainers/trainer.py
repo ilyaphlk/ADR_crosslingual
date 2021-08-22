@@ -56,7 +56,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         result = model(**batch)
 
         loss = result.loss
-        total_train_loss += result.float_loss  # true loss is precomputed for honest comparison
+        total_train_loss += result.loss_float  # true loss is precomputed for honest comparison
 
         # custom L2, as described in SemEval 2020 Amobee Systems paper
         if model_initial is not None and L2_coef > 0:
