@@ -89,6 +89,8 @@ class BertTokenClassifier(BertPreTrainedModel):
             else:
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
+            loss_float = float(loss)
+
         elif teacher_logits is not None:
             #loss_fct = MSELoss(reduction="mean")
             loss_fct = custom_mse
@@ -104,8 +106,7 @@ class BertTokenClassifier(BertPreTrainedModel):
                     samples_variances = samples_variances.view(-1, self.num_labels)[active_loss]
 
             loss = loss_fct(probs, src_probs, samples_variances)
-
-        loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
+            loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
 
 
         if not return_dict:
