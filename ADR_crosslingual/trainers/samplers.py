@@ -112,14 +112,13 @@ class BaseUncertaintySampler:
         elif self.strategy == 'mid':
             raise NotImplementedError
 
-        filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
+        filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
         original_lens = original_lens[idx_selected]
         filtered_batch['original_lens'] = original_lens.to(device)
 
         ###############
         ### explicitly compute prediction variances
         ###############
-        filtered_batch['samples_variances'] = None
 
         if self.return_vars:
 
