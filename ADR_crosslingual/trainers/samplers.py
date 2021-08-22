@@ -48,7 +48,7 @@ class BaseUncertaintySampler:
         scores = []
         computed_logits = []
 
-        original_lens = batched_samples.pop('original_lens', None)
+        original_lens = batch.pop('original_lens', None)
 
         for i in range(0, N, scoring_batch_sz):
             samples = []
