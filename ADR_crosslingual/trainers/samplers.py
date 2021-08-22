@@ -93,7 +93,6 @@ class BaseUncertaintySampler:
                 scores.append(aggregated_score)
                 del cur_probs
             
-            del original_lens
             del probs
 
             if torch.cuda.is_available():
