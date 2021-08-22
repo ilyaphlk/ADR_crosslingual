@@ -35,6 +35,7 @@ class BaseUncertaintySampler:
         device = next(model.parameters()).device
 
         N = batch['input_ids'].shape[0]
+
         if N <= self.n_samples_out:  # no need to select samples
             for key, t in batch.items():
                 batch[key] = t.to(device)
@@ -47,6 +48,8 @@ class BaseUncertaintySampler:
         scores = []
         computed_logits = []
 
+        original_lens = batched_samples.pop('original_lens', None)
+
         for i in range(0, N, scoring_batch_sz):
             samples = []
             for j in range(i, min(N, i+scoring_batch_sz)):
@@ -54,7 +57,6 @@ class BaseUncertaintySampler:
 
             batched_samples = collate_dicts(samples)
             del samples
-            original_lens = batched_samples.pop('original_lens', None)
 
             for key, t in batched_samples.items():
                 batched_samples[key] = t.to(device)
@@ -76,7 +78,7 @@ class BaseUncertaintySampler:
                 #truncate probs:
                 cur_probs = probs[j,:,:,:]
                 if original_lens is not None:
-                    orig_len = original_lens[j]
+                    orig_len = original_lens[i+j]
                     cur_probs = cur_probs[:, :orig_len, :]
 
                 token_scores = self._calculate_uncertainty_score(cur_probs)
@@ -112,7 +114,8 @@ class BaseUncertaintySampler:
             raise NotImplementedError
 
         filtered_batch = {key : val[idx_selected,:] for key, val in batch.items()}
-
+        original_lens = original_lens[idx_selected]
+        filtered_batch['original_lens'] = original_lens
 
         ###############
         ### explicitly compute prediction variances
@@ -140,7 +143,7 @@ class BaseUncertaintySampler:
             for j in range(probs.size(0)):
                 #truncate probs:
                 cur_probs = probs[j,:,:,:]
-                orig_len = len(filtered_batch['input_ids'][j]) # TODO sketchy?
+                orig_len = original_lens[j] # TODO sketchy?
                 cur_probs = cur_probs[:, :orig_len, :]
 
                 token_variances = var_sampler._calculate_variances(cur_probs)
@@ -153,7 +156,11 @@ class BaseUncertaintySampler:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-            filtered_batch['samples_variances'] = torch.tensor(samples_variances)  # samples_variances to tensor
+            # TODO collate variances
+
+            filtered_batch['samples_variances'] = pad_sequence(samples_variances,
+                                                                batch_first=True,
+                                                                padding_value=0).to(device)  # samples_variances to tensor
 
         return filtered_batch
 
@@ -210,8 +217,15 @@ class RandomSampler(BaseUncertaintySampler):
 
 
 class BALDSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes=5, scoring_batch_sz=1, averaging_share=None):
-        super().__init__(strategy, n_samples_out, scoring_batch_sz, averaging_share)
+    def __init__(
+        self,
+        strategy,
+        n_samples_out,
+        n_forward_passes=5,
+        scoring_batch_sz=1,
+        averaging_share=None,
+        return_vars=False):
+        super().__init__(strategy, n_samples_out, scoring_batch_sz, averaging_share, return_vars)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
         self.scoring_batch_sz = scoring_batch_sz
@@ -224,8 +238,15 @@ class BALDSampler(BaseUncertaintySampler):
 
 
 class VarianceSampler(BaseUncertaintySampler):
-    def __init__(self, strategy, n_samples_out, n_forward_passes=5, scoring_batch_sz=1, averaging_share=None):
-        super().__init__(strategy, n_samples_out, scoring_batch_sz, averaging_share)
+    def __init__(
+        self,
+        strategy,
+        n_samples_out,
+        n_forward_passes=5,
+        scoring_batch_sz=1,
+        averaging_share=None,
+        return_vars=False):
+        super().__init__(strategy, n_samples_out, scoring_batch_sz, averaging_share, return_vars)
         self.n_forward_passes = n_forward_passes
         self.stochastic = True
 

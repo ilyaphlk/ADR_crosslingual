@@ -34,11 +34,12 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
 
         del step
 
-        original_lens_batch = batch.pop('original_lens', None)
         device = next(model.parameters()).device
 
         if sampler is not None:
             batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
+
+        original_lens_batch = batch.pop('original_lens', None)
 
         if teacher_model is not None and 'teacher_logits' not in batch:
             teacher_model.eval()

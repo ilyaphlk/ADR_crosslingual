@@ -47,7 +47,8 @@ class BertTokenClassifier(BertPreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        samples_variances=None
+        samples_variances=None,
+        original_lens=None
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
@@ -99,6 +100,8 @@ class BertTokenClassifier(BertPreTrainedModel):
                 #active_loss[inactive_subword] = 0
                 probs = probs.view(-1, self.num_labels)[active_loss]
                 src_probs = src_probs.view(-1, self.num_labels)[active_loss]
+                if samples_variances is not None:
+                    samples_variances = samples_variances.view(-1, self.num_labels)[active_loss]
 
             loss = loss_fct(probs, src_probs, samples_variances)
 
@@ -157,6 +160,7 @@ class XLMTokenClassifier(XLMPreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        original_lens=None
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
