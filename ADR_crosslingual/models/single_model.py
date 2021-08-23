@@ -97,21 +97,21 @@ class BertTokenClassifier(BertPreTrainedModel):
             probs = torch.nn.functional.softmax(logits, dim=-1)
             src_probs = torch.nn.functional.softmax(teacher_logits, dim=-1)
             if attention_mask is not None:
-                active_loss = attention_mask.view(-1) == 1
+                active_loss = attention_mask.reshape(-1) == 1
                 #inactive_subword = labels.view(-1) == loss_ignore_index
                 #active_loss[inactive_subword] = 0
 
                 print("probs before view:",probs.size())
 
-                probs = probs.view(-1, self.num_labels)[active_loss]
+                probs = probs.reshape(-1, self.num_labels)[active_loss]
 
                 print("probs after view:",probs.size())
 
-                src_probs = src_probs.view(-1, self.num_labels)[active_loss]
+                src_probs = src_probs.reshape(-1, self.num_labels)[active_loss]
 
                 if samples_variances is not None:
                     print("vars before view:", samples_variances.size())
-                    samples_variances = samples_variances.view(-1)[active_loss]
+                    samples_variances = samples_variances.reshape(-1)[active_loss]
                     print("vars after view:", samples_variances.size())
 
             loss = loss_fct(probs, src_probs, samples_variances)
