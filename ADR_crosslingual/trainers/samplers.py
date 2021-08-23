@@ -124,7 +124,7 @@ class BaseUncertaintySampler:
         filtered_batch = collate_dicts(samples, return_lens=False)
         del samples
         for key, t in filtered_batch.items():
-            t.to(device)
+            filtered_batch[key] = t.to(device)
 
         ############
 
