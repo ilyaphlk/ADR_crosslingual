@@ -111,7 +111,7 @@ class BertTokenClassifier(BertPreTrainedModel):
 
                 if samples_variances is not None:
                     print("vars before view:", samples_variances.size())
-                    samples_variances = samples_variances.view(-1)#[active_loss]
+                    samples_variances = samples_variances.view(-1)[active_loss]
                     print("vars after view:", samples_variances.size())
 
             loss = loss_fct(probs, src_probs, samples_variances)
