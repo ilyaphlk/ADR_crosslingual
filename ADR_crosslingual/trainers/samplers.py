@@ -121,8 +121,11 @@ class BaseUncertaintySampler:
         for idx in idx_selected:
             samples.append({key : val[idx,:] for key, val in batch.items()})
 
-        filtered_batch = collate_dicts(samples, return_lens=False).to(device)
+        filtered_batch = collate_dicts(samples, return_lens=False)
         del samples
+        for key, t in filtered_batch.items():
+            t.to(device)
+
         ############
 
         #######
