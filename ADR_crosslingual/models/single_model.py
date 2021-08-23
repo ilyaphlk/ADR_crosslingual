@@ -103,11 +103,11 @@ class BertTokenClassifier(BertPreTrainedModel):
 
                 print("probs before view:",probs.size())
 
-                probs = probs.reshape(-1, self.num_labels)[active_loss]
+                probs = probs.view(-1, self.num_labels)[active_loss]
 
                 print("probs after view:",probs.size())
 
-                src_probs = src_probs.reshape(-1, self.num_labels)[active_loss]
+                src_probs = src_probs.view(-1, self.num_labels)[active_loss]
 
                 if samples_variances is not None:
                     print("vars before view:", samples_variances.size())
