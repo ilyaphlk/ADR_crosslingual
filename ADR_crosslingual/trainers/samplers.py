@@ -117,6 +117,11 @@ class BaseUncertaintySampler:
         original_lens = original_lens[idx_selected]
         filtered_batch['original_lens'] = original_lens.to(device)
 
+
+        for key, t in filtered_batch.items():
+            print(key, t.size())
+
+
         ###############
         ### explicitly compute prediction variances
         ###############
@@ -138,12 +143,16 @@ class BaseUncertaintySampler:
             probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
             del probs_list
 
+            print("probs size:", probs.size())
+
             var_sampler = VarianceSampler('uncertain', 1)  # should make a static method instead
             for j in range(probs.size(0)):
                 #truncate probs:
                 cur_probs = probs[j,:,:,:]
                 orig_len = original_lens[j] # TODO sketchy?
                 cur_probs = cur_probs[:, :orig_len, :]
+
+                print("cur probs shape:", cur_probs.size())
 
                 token_variances = var_sampler._calculate_variances(cur_probs)
                 
@@ -160,6 +169,8 @@ class BaseUncertaintySampler:
             filtered_batch['samples_variances'] = pad_sequence(samples_variances,
                                                                 batch_first=True,
                                                                 padding_value=0).to(device)  # samples_variances to tensor
+
+            print("variances batch shape:", filtered_batch['samples_variances'].size())
 
         return filtered_batch
 
