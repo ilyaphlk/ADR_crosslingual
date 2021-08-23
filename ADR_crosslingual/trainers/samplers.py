@@ -113,7 +113,23 @@ class BaseUncertaintySampler:
         elif self.strategy == 'mid':
             raise NotImplementedError
 
-        filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
+        #filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
+
+        ############
+        # repack batch - slow
+        samples = []
+        for idx in idx_selected:
+            samples.append({key : val[idx,:] for key, val in batch.items()})
+
+        filtered_batch = collate_dicts(samples, return_lens=False).to(device)
+        del samples
+        ############
+
+        #######
+        # TODO: instead, find max len in new batch, truncate filtered
+        #######
+
+
         original_lens = original_lens[idx_selected]
         filtered_batch['original_lens'] = original_lens.to(device)
 
