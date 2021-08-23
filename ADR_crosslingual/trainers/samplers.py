@@ -113,10 +113,11 @@ class BaseUncertaintySampler:
         elif self.strategy == 'mid':
             raise NotImplementedError
 
-        #filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
+        filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
 
         ############
         # repack batch - slow
+        '''
         samples = []
         for idx in idx_selected:
             samples.append({key : val[idx,:] for key, val in batch.items()})
@@ -125,6 +126,7 @@ class BaseUncertaintySampler:
         del samples
         for key, t in filtered_batch.items():
             filtered_batch[key] = t.to(device)
+        '''
 
         ############
 
@@ -134,6 +136,13 @@ class BaseUncertaintySampler:
 
 
         original_lens = original_lens[idx_selected]
+        new_max_len = torch.max(original_lens)
+        for key, t in filtered_batch.items():
+            if len(t.size()) == 2:
+                filtered_batch[key] = t[:,:new_max_len] # truncate manually
+            if len(t.size()) == 3:
+                filtered_batch[key] = t[:,:new_max_len, :]
+
         filtered_batch['original_lens'] = original_lens.to(device)
 
 
