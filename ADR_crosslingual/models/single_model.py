@@ -13,7 +13,7 @@ from transformers.models.bert.modeling_bert import TokenClassifierOutput
 def custom_mse(output, target, variances=None):
     if variances is None:
         return torch.mean((output - target)**2)
-    return torch.mean((output - target)**2 * variances)
+    return torch.mean(torch.mean((output - target)**2, dim=-1) * variances)
 
 
 class ModelOutput(TokenClassifierOutput):
@@ -102,8 +102,10 @@ class BertTokenClassifier(BertPreTrainedModel):
                 #active_loss[inactive_subword] = 0
                 probs = probs.view(-1, self.num_labels)[active_loss]
                 src_probs = src_probs.view(-1, self.num_labels)[active_loss]
+                
                 if samples_variances is not None:
-                    samples_variances = samples_variances.view(-1, self.num_labels)[active_loss]
+                    samples_variances = samples_variances.view(-1)#[active_loss]
+                
 
             loss = loss_fct(probs, src_probs, samples_variances)
             loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
