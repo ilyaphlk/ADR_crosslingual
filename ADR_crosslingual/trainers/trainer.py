@@ -79,11 +79,13 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
             preds_ids.extend(unpack([result.logits.max(-1).indices],  [original_lens_batch]))
 
         del original_lens_batch
+        del result
 
         optimizer.step()
 
     avg_train_loss = total_train_loss / len(dataloader)            
     training_time = format_time(time.time() - t0)
+
 
     if tensorboard_writer is not None:
         tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
