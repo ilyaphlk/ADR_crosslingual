@@ -117,9 +117,12 @@ class BertTokenClassifier(BertPreTrainedModel):
                     samples_variances = samples_variances.reshape(-1)[active_loss]
                     #print("vars after view:", samples_variances.size())
 
-            loss = loss_fct(probs, src_probs, samples_variances)
-            with torch.no_grad():
-                loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
+            #loss = loss_fct(probs, src_probs, samples_variances)
+            #with torch.no_grad():
+            #    loss_float = float(MSELoss(reduction="mean")(probs, src_probs))
+            
+            loss = MSELoss(reduction="mean")(probs, src_probs)
+            loss_float = float(loss)
 
 
         if not return_dict:
