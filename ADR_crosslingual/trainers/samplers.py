@@ -30,178 +30,180 @@ class BaseUncertaintySampler:
 
 
     def __call__(self, batch, model):
-        scoring_batch_sz = self.scoring_batch_sz
+        with torch.no_grad():
+            scoring_batch_sz = self.scoring_batch_sz
 
-        model.eval()
-        device = next(model.parameters()).device
+            model.eval()
+            device = next(model.parameters()).device
 
-        N = batch['input_ids'].shape[0]
+            N = batch['input_ids'].shape[0]
 
-        if N <= self.n_samples_out:  # no need to select samples
-            for key, t in batch.items():
-                batch[key] = t.to(device)
-            batch['teacher_logits'] = model(**batch).logits.to(device)
-            return batch
+            if N <= self.n_samples_out:  # no need to select samples
+                for key, t in batch.items():
+                    batch[key] = t.to(device)
+                batch['teacher_logits'] = model(**batch).logits.to(device)
+                return batch
 
-        if self.stochastic:  # in order to use MC Dropout
-            model.train()
 
-        scores = []
-        computed_logits = []
+            if self.stochastic:  # in order to use MC Dropout
+                model.train()
 
-        original_lens = batch.pop('original_lens', None)
+            scores = []
+            computed_logits = []
 
-        for i in range(0, N, scoring_batch_sz):
+            original_lens = batch.pop('original_lens', None)
+
+            for i in range(0, N, scoring_batch_sz):
+                samples = []
+                for j in range(i, min(N, i+scoring_batch_sz)):
+                    samples.append({key : val[j,:] for key, val in batch.items()})
+
+                batched_samples = collate_dicts(samples)
+                del samples
+
+                for key, t in batched_samples.items():
+                    batched_samples[key] = t.to(device)
+
+                probs_list = []
+                for _ in range(self.n_forward_passes):
+                    with torch.no_grad():
+                        probs = torch.nn.functional.softmax(
+                            model(**batched_samples).logits.to('cpu'),
+                            dim=-1
+                        )
+                        probs_list.append(probs)
+
+                del batched_samples
+
+                probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
+                del probs_list
+                for j in range(probs.size(0)):
+                    #truncate probs:
+                    cur_probs = probs[j,:,:,:]
+                    if original_lens is not None:
+                        orig_len = original_lens[i+j]
+                        cur_probs = cur_probs[:, :orig_len, :]
+
+                    token_scores = self._calculate_uncertainty_score(cur_probs)
+                    aggregated_score = None
+                    if self.averaging_share is None:
+                        aggregated_score = torch.mean(token_scores)
+                    else:
+                        k = int(token_scores.size(0) * self.averaging_share)
+                        k = max(1, k)
+                        aggregated_score = torch.topk(token_scores, k, dim=0).values.mean()
+
+                    scores.append(aggregated_score)
+                    del cur_probs
+                
+                del probs
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                '''
+                if not self.stochastic:
+                    computed_logits.append({'teacher_logits':logits})
+                '''
+
+            scores = np.array(scores)
+            idx_sorted = np.argsort(scores)
+
+            if self.strategy == 'confident':
+                idx_selected = idx_sorted[:self.n_samples_out]
+            elif self.strategy == 'uncertain':
+                idx_selected = idx_sorted[-self.n_samples_out:]
+            elif self.strategy == 'mid':
+                raise NotImplementedError
+
+            filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
+            del batch
+
+            ############
+            # repack batch - slow
+            '''
             samples = []
-            for j in range(i, min(N, i+scoring_batch_sz)):
-                samples.append({key : val[j,:] for key, val in batch.items()})
+            for idx in idx_selected:
+                samples.append({key : val[idx,:] for key, val in batch.items()})
 
-            batched_samples = collate_dicts(samples)
+            filtered_batch = collate_dicts(samples, return_lens=False)
             del samples
+            for key, t in filtered_batch.items():
+                filtered_batch[key] = t.to(device)
+            '''
 
-            for key, t in batched_samples.items():
-                batched_samples[key] = t.to(device)
+            ############
 
-            probs_list = []
-            for _ in range(self.n_forward_passes):
-                with torch.no_grad():
-                    probs = torch.nn.functional.softmax(
-                        model(**batched_samples).logits.to('cpu'),
-                        dim=-1
-                    )
-                    probs_list.append(probs)
+            #######
+            # TODO: instead, find max len in new batch, truncate filtered
+            #######
 
-            del batched_samples
 
-            probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
-            del probs_list
-            for j in range(probs.size(0)):
-                #truncate probs:
-                cur_probs = probs[j,:,:,:]
-                if original_lens is not None:
-                    orig_len = original_lens[i+j]
+            original_lens = original_lens[idx_selected]
+            new_max_len = torch.max(original_lens)
+            for key, t in filtered_batch.items():
+                if len(t.size()) == 2:
+                    filtered_batch[key] = t[:,:new_max_len] # truncate manually
+                if len(t.size()) == 3:
+                    filtered_batch[key] = t[:,:new_max_len, :]
+
+            filtered_batch['original_lens'] = original_lens.to(device)
+
+
+            for key, t in filtered_batch.items():
+                print(key, t.size())
+
+
+            ###############
+            ### explicitly compute prediction variances
+            ###############
+
+            if self.return_vars:
+
+                samples_variances = []
+                model.train()
+
+                probs_list = []
+                for _ in range(self.n_forward_passes):
+                    with torch.no_grad():
+                        probs = torch.nn.functional.softmax(
+                            model(**filtered_batch).logits.to('cpu'),
+                            dim=-1
+                        )
+                        probs_list.append(probs)
+
+                probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
+                del probs_list
+
+                #print("probs size:", probs.size())
+
+                var_sampler = VarianceSampler('uncertain', 1)  # should make a static method instead
+                for j in range(probs.size(0)):
+                    #truncate probs:
+                    cur_probs = probs[j,:,:,:]
+                    orig_len = original_lens[j] # TODO sketchy?
                     cur_probs = cur_probs[:, :orig_len, :]
 
-                token_scores = self._calculate_uncertainty_score(cur_probs)
-                aggregated_score = None
-                if self.averaging_share is None:
-                    aggregated_score = torch.mean(token_scores)
-                else:
-                    k = int(token_scores.size(0) * self.averaging_share)
-                    k = max(1, k)
-                    aggregated_score = torch.topk(token_scores, k, dim=0).values.mean()
+                    #print("cur probs shape:", cur_probs.size())
 
-                scores.append(aggregated_score)
-                del cur_probs
-            
-            del probs
-
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            '''
-            if not self.stochastic:
-                computed_logits.append({'teacher_logits':logits})
-            '''
-
-        scores = np.array(scores)
-        idx_sorted = np.argsort(scores)
-
-        if self.strategy == 'confident':
-            idx_selected = idx_sorted[:self.n_samples_out]
-        elif self.strategy == 'uncertain':
-            idx_selected = idx_sorted[-self.n_samples_out:]
-        elif self.strategy == 'mid':
-            raise NotImplementedError
-
-        filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
-        del batch
-
-        ############
-        # repack batch - slow
-        '''
-        samples = []
-        for idx in idx_selected:
-            samples.append({key : val[idx,:] for key, val in batch.items()})
-
-        filtered_batch = collate_dicts(samples, return_lens=False)
-        del samples
-        for key, t in filtered_batch.items():
-            filtered_batch[key] = t.to(device)
-        '''
-
-        ############
-
-        #######
-        # TODO: instead, find max len in new batch, truncate filtered
-        #######
-
-
-        original_lens = original_lens[idx_selected]
-        new_max_len = torch.max(original_lens)
-        for key, t in filtered_batch.items():
-            if len(t.size()) == 2:
-                filtered_batch[key] = t[:,:new_max_len] # truncate manually
-            if len(t.size()) == 3:
-                filtered_batch[key] = t[:,:new_max_len, :]
-
-        filtered_batch['original_lens'] = original_lens.to(device)
-
-
-        for key, t in filtered_batch.items():
-            print(key, t.size())
-
-
-        ###############
-        ### explicitly compute prediction variances
-        ###############
-
-        if self.return_vars:
-
-            samples_variances = []
-            model.train()
-
-            probs_list = []
-            for _ in range(self.n_forward_passes):
-                with torch.no_grad():
-                    probs = torch.nn.functional.softmax(
-                        model(**filtered_batch).logits.to('cpu'),
-                        dim=-1
-                    )
-                    probs_list.append(probs)
-
-            probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
-            del probs_list
-
-            #print("probs size:", probs.size())
-
-            var_sampler = VarianceSampler('uncertain', 1)  # should make a static method instead
-            for j in range(probs.size(0)):
-                #truncate probs:
-                cur_probs = probs[j,:,:,:]
-                orig_len = original_lens[j] # TODO sketchy?
-                cur_probs = cur_probs[:, :orig_len, :]
-
-                #print("cur probs shape:", cur_probs.size())
-
-                token_variances = var_sampler._calculate_variances(cur_probs)
+                    token_variances = var_sampler._calculate_variances(cur_probs)
+                    
+                    samples_variances.append(torch.tensor(token_variances))
+                    del cur_probs
                 
-                samples_variances.append(torch.tensor(token_variances))
-                del cur_probs
-            
-            del probs
+                del probs
 
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
-            # TODO collate variances
+                # TODO collate variances
 
-            filtered_batch['samples_variances'] = pad_sequence(samples_variances,
-                                                                batch_first=True,
-                                                                padding_value=0).to(device)  # samples_variances to tensor
+                filtered_batch['samples_variances'] = pad_sequence(samples_variances,
+                                                                    batch_first=True,
+                                                                    padding_value=0).to(device)  # samples_variances to tensor
 
-            print("variances batch shape:", filtered_batch['samples_variances'].size())
+                print("variances batch shape:", filtered_batch['samples_variances'].size())
 
-        return filtered_batch
+                return filtered_batch
 
 
     def get_student_batch(self, batch, model, teacher_batch_sz=1):
