@@ -424,8 +424,8 @@ def main(path_to_yaml, runs_path,
         print('We will use the GPU:', device_name)
         if 'K80' in device_name:
             print('wild K80 appears. lowering the batch size...')
-            student_config.train_batch_sz = 2
-            exp_config.student_config.train_batch_sz = 2
+            student_config.train_batch_sz //= 2
+            exp_config.student_config.train_batch_sz //= 2
 
     else:
         print('No GPU available, using the CPU instead.')

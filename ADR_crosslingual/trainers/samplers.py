@@ -114,6 +114,7 @@ class BaseUncertaintySampler:
             raise NotImplementedError
 
         filtered_batch = {key : val[idx_selected,:].to(device) for key, val in batch.items()}
+        del batch
 
         ############
         # repack batch - slow
