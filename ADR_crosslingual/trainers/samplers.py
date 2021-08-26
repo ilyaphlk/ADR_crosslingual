@@ -149,8 +149,8 @@ class BaseUncertaintySampler:
             filtered_batch['original_lens'] = original_lens.to(device)
 
 
-            for key, t in filtered_batch.items():
-                print(key, t.size())
+            #for key, t in filtered_batch.items():
+            #    print(key, t.size())
 
 
             ###############
@@ -201,9 +201,9 @@ class BaseUncertaintySampler:
                                                                     batch_first=True,
                                                                     padding_value=0).to(device)  # samples_variances to tensor
 
-                print("variances batch shape:", filtered_batch['samples_variances'].size())
+                #print("variances batch shape:", filtered_batch['samples_variances'].size())
 
-                return filtered_batch
+            return filtered_batch
 
 
     def get_student_batch(self, batch, model, teacher_batch_sz=1):
