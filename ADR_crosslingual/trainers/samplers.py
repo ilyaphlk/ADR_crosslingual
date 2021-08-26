@@ -172,7 +172,7 @@ class BaseUncertaintySampler:
             probs = torch.stack(probs_list, dim=1)  # shape = (B, T, N, C)
             del probs_list
 
-            print("probs size:", probs.size())
+            #print("probs size:", probs.size())
 
             var_sampler = VarianceSampler('uncertain', 1)  # should make a static method instead
             for j in range(probs.size(0)):
@@ -181,7 +181,7 @@ class BaseUncertaintySampler:
                 orig_len = original_lens[j] # TODO sketchy?
                 cur_probs = cur_probs[:, :orig_len, :]
 
-                print("cur probs shape:", cur_probs.size())
+                #print("cur probs shape:", cur_probs.size())
 
                 token_variances = var_sampler._calculate_variances(cur_probs)
                 
