@@ -104,20 +104,21 @@ def eval_model(model, dataloader, cur_epoch, device,
          logging_interval=10, tensorboard_writer=None, tb_postfix=" (test)", print_progress=True,
          compute_metrics=None, int2label=None):
 
-    t0 = time.time()
-    model.eval()
+    with torch.no_grad():
+        t0 = time.time()
+        model.eval()
 
-    total_eval_loss = 0
+        total_eval_loss = 0
 
-    label_ids = []
-    preds_ids = []
+        label_ids = []
+        preds_ids = []
 
-    for batch in dataloader:
-        for key, t in batch.items():
-            batch[key] = t.to(device) 
-        original_lens_batch = batch.pop('original_lens', None)
+    
+        for batch in dataloader:
+            for key, t in batch.items():
+                batch[key] = t.to(device) 
+            original_lens_batch = batch.pop('original_lens', None)
 
-        with torch.no_grad():
             result = model(**batch)
 
             total_eval_loss += float(result.loss)
@@ -127,22 +128,23 @@ def eval_model(model, dataloader, cur_epoch, device,
             del original_lens_batch
 
             del result
-    avg_val_loss = 0
-    if len(dataloader) > 0:
-        avg_val_loss = total_eval_loss / len(dataloader)
-    validation_time = format_time(time.time() - t0)
+
+        avg_val_loss = 0
+        if len(dataloader) > 0:
+            avg_val_loss = total_eval_loss / len(dataloader)
+        validation_time = format_time(time.time() - t0)
 
 
-    if tensorboard_writer is not None:
-        tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_val_loss, cur_epoch)
-        if compute_metrics is not None:
-            int2label = dataloader.dataset.int2label if int2label is None else int2label
-            metrics = compute_metrics(label_ids, preds_ids, int2label)
-            print(tb_postfix, metrics)
-            tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
-        
-    if print_progress:
-        print("  Test Loss: {0:.4f}".format(avg_val_loss))
-        print("  Validation took: {:}".format(validation_time))
+        if tensorboard_writer is not None:
+            tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_val_loss, cur_epoch)
+            if compute_metrics is not None:
+                int2label = dataloader.dataset.int2label if int2label is None else int2label
+                metrics = compute_metrics(label_ids, preds_ids, int2label)
+                print(tb_postfix, metrics)
+                tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
+            
+        if print_progress:
+            print("  Test Loss: {0:.4f}".format(avg_val_loss))
+            print("  Validation took: {:}".format(validation_time))
 
-    return avg_val_loss, validation_time
+        return avg_val_loss, validation_time
