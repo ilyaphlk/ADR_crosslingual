@@ -7,6 +7,8 @@ from NLPDatasetIO.dataset import Dataset
 from transformers import BertTokenizer, XLMTokenizer
 import json
 from nltk.tokenize import sent_tokenize
+import statistics
+from collections import Counter
 
 
 class BratDataset(torch.utils.data.Dataset):
@@ -130,6 +132,31 @@ class BratDataset(torch.utils.data.Dataset):
 
         return item
 
+    def print_stats(self):
+        print("texts count:", len(self.documents))
+
+        token_lens = [len(doc._tokens) for doc in self.documents]
+        print("average text length (in tokens):", statistics.mean(token_lens))
+
+        if self.labeled:
+            counter_list = [Counter(doc_labels) for doc_labels in self.labels]
+            labels_cnt = sum(counter_list, Counter())
+            print("total token classes:", labels_cnt)
+
+            cnt_ADR = labels_cnt['B-ADR'] + labels_cnt['I-ADR']
+            cnt_other = sum(labels_cnt.values()) - cnt_ADR
+            
+            print("ADR share (B + I):", cnt_ADR / (cnt_ADR + cnt_other))
+            #print("B-ADR / Other:", labels_cnt['B-ADR'] / labels_cnt['O'])
+            print("ADR count vs Other count:", labels_cnt['B-ADR'], "vs", labels_cnt['O'])
+
+            print("sentence level:")
+
+            adr_shares = [(cnt['B-ADR'] + cnt['I-ADR']) / sum(cnt.values()) for cnt in counter_list]
+            print("average ADR share:", statistics.mean(adr_shares))
+
+
+
 
 
 class JsonDataset(torch.utils.data.Dataset):
@@ -213,3 +240,27 @@ class JsonDataset(torch.utils.data.Dataset):
             item['labels'] = torch.tensor(labels)
 
         return item
+
+
+    def print_stats(self):
+        print("texts count:", len(self.documents))
+
+        token_lens = [len(doc._tokens) for doc in self.documents]
+        print("average text length (in tokens):", statistics.mean(token_lens))
+
+        if self.labeled:
+            counter_list = [Counter(doc_labels) for doc_labels in self.labels]
+            labels_cnt = sum(counter_list, Counter())
+            print("total token classes:", labels_cnt)
+
+            cnt_ADR = labels_cnt['B-ADR'] + labels_cnt['I-ADR']
+            cnt_other = sum(labels_cnt.values()) - cnt_ADR
+            
+            print("ADR share (B + I):", cnt_ADR / (cnt_ADR + cnt_other))
+            #print("B-ADR / Other:", labels_cnt['B-ADR'] / labels_cnt['O'])
+            print("ADR count vs Other count:", labels_cnt['B-ADR'], "vs", labels_cnt['O'])
+
+            print("sentence level:")
+
+            adr_shares = [(cnt['B-ADR'] + cnt['I-ADR']) / sum(cnt.values()) for cnt in counter_list]
+            print("average ADR share:", statistics.mean(adr_shares))
