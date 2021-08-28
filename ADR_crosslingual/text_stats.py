@@ -28,7 +28,69 @@ from transformers import (
     BertTokenizer, BertConfig
 )
 
-def stats_printer(exp_config):
+
+def read_yaml_config(path_to_yaml):
+    with open(path_to_yaml) as cfg_yaml:
+        cfg = yaml.load(cfg_yaml, Loader=yaml.FullLoader)
+        t_cfg = cfg['teacher_config']
+        st_cfg = cfg['student_config']
+        spl_cfg = cfg['sampler_config']
+        exp_cfg = cfg['exp_config']
+
+    teacher_config = TrainConfig(
+        model_type={
+            'tokenizer': eval(t_cfg['model_type']['tokenizer']),
+            'config': eval(t_cfg['model_type']['config']),
+            'model': eval(t_cfg['model_type']['model']),
+            'subword_prefix': t_cfg['model_type'].get('subword_prefix', None),
+            'subword_suffix': t_cfg['model_type'].get('subword_suffix', None),
+        },
+        model_checkpoint=t_cfg['model_checkpoint'],
+        optimizer_class=eval(t_cfg['optimizer_class']),
+        optimizer_kwargs={'lr':float(t_cfg['optimizer_kwargs']['lr']),
+                          'eps':float(t_cfg['optimizer_kwargs']['eps']),
+                          'weight_decay':float(t_cfg['optimizer_kwargs'].get('weight_decay', 0))},
+        train_batch_sz=t_cfg['train_batch_sz'],
+        test_batch_sz=t_cfg['test_batch_sz'],
+        epochs=t_cfg['epochs'],
+        L2_coef=float(t_cfg['L2_coef']),
+    )
+
+    student_config = TrainConfig(
+        model_type={
+            'tokenizer': eval(st_cfg['model_type']['tokenizer']),
+            'config': eval(st_cfg['model_type']['config']),
+            'model': eval(st_cfg['model_type']['model']),
+            'subword_prefix': st_cfg['model_type'].get('subword_prefix', None),
+            'subword_suffix': st_cfg['model_type'].get('subword_suffix', None)
+        },
+        model_checkpoint=st_cfg['model_checkpoint'],
+        optimizer_class=eval(st_cfg['optimizer_class']),
+        optimizer_kwargs={'lr':float(st_cfg['optimizer_kwargs']['lr']),
+                          'eps':float(st_cfg['optimizer_kwargs']['eps']),
+                          'weight_decay':float(st_cfg['optimizer_kwargs'].get('weight_decay', 0))},
+        train_batch_sz=st_cfg['train_batch_sz'],
+        test_batch_sz=st_cfg['test_batch_sz'],
+        epochs=st_cfg['epochs']
+    )
+
+    sampler_config = SamplerConfig(
+        sampler_class=eval(spl_cfg['sampler_class']),#BALDSampler,#RandomSampler,
+        sampler_kwargs={'strategy':spl_cfg['sampler_kwargs']['strategy'],
+                        'n_samples_out':spl_cfg['sampler_kwargs'].get('n_samples_out', student_config.train_batch_sz),
+                        'scoring_batch_sz':spl_cfg['sampler_kwargs'].get('scoring_batch_sz', 1),
+                        'averaging_share':spl_cfg['sampler_kwargs'].get('averaging_share', None),
+                        'return_vars':spl_cfg['sampler_kwargs'].get('return_vars', False),
+                        },
+        n_samples_in= spl_cfg['n_samples_in'],
+        
+    )
+
+
+
+def stats_printer(path_to_yaml):
+
+    exp_config = read_yaml_config(path_to_yaml)
 
     cadec_tuple, psytar_tuple, rudrec_tuple, joined_tuple, big_unlabeled_set, rudrec_big_labeled_set = make_datasets(exp_config)
 
