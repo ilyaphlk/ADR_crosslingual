@@ -101,6 +101,14 @@ def read_yaml_config(path_to_yaml):
         n_samples_in= spl_cfg['n_samples_in'],
         
     )
+    common_tokenize=exp_cfg.get('common_tokenize', None)
+    if common_tokenize is not None:
+        exp_config.common_tokenize = eval(common_tokenize)
+
+    if exp_config.init_with_teacher:
+        assert teacher_config.model_type['model'] == student_config.model_type['model']
+
+    return exp_config
 
 
 
