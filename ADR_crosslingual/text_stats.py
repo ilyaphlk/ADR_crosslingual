@@ -21,11 +21,27 @@ from copy import deepcopy
 from ADR_crosslingual.utils import (
     format_time, set_seed, unpack, compute_metrics,
     make_brat_pair, map_labels, get_cur_labeled_loaders,
+    
 )
-
+from ADR_crosslingual.utils import collate_dicts as collate_dicts_
+from torch.utils.tensorboard import SummaryWriter
+from ADR_crosslingual.models.single_model import BertTokenClassifier, XLMTokenClassifier
+from ADR_crosslingual.trainers.trainer import train_model
+from ADR_crosslingual.trainers.trainer import eval_model
 from ADR_crosslingual.configs import TrainConfig, SamplerConfig, ExperimentConfig
 from transformers import (
-    BertTokenizer, BertConfig
+    BertTokenizer, BertConfig, BertPreTrainedModel, BertModel,
+    XLMTokenizer, XLMConfig, XLMPreTrainedModel, XLMModel,
+    AdamW,
+)
+
+from ADR_crosslingual.trainers.samplers import (
+    BaseUncertaintySampler,
+    MarginOfConfidenceSampler,
+    BALDSampler,
+    VarianceSampler,
+    EntropySampler,
+    RandomSampler
 )
 
 
