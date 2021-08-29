@@ -1,7 +1,13 @@
 import time
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from torch.profiler import profile, record_function, ProfilerActivity
 from ADR_crosslingual.utils import format_time, unpack
+
+
+def trace_handler(p):
+    output = p.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10)
+    print(output)
 
 
 def train_model(model, dataloader, cur_epoch, device, optimizer,
@@ -26,80 +32,93 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
     label_ids = []
     preds_ids = []
 
-    for step, batch in enumerate(dataloader, 1):
 
-        if print_progress and step % logging_interval == 0 and not step == 0:
-            elapsed = format_time(time.time() - t0)
-            print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
-        del step
+    with profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        profile_memory=True, record_shapes=True,
+        schedule=torch.profiler.schedule(
+            wait=15,
+            warmup=1,
+            active=4),
+        on_trace_ready=trace_handler
+    ) as prof:
 
-        device = next(model.parameters()).device
+        for step, batch in enumerate(dataloader, 1):
 
-        if sampler is not None:
-            batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
+            if print_progress and step % logging_interval == 0 and not step == 0:
+                elapsed = format_time(time.time() - t0)
+                print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
-        original_lens_batch = batch.pop('original_lens', None)
+            del step
 
-        if teacher_model is not None and 'teacher_logits' not in batch:
-            teacher_model.eval()
-            teacher_device = next(teacher_model.parameters()).device
+            device = next(model.parameters()).device
+
+            if sampler is not None:
+                batch = sampler(batch, teacher_model)  # possible reduction of the whole batch
+
+            original_lens_batch = batch.pop('original_lens', None)
+
+            if teacher_model is not None and 'teacher_logits' not in batch:
+                teacher_model.eval()
+                teacher_device = next(teacher_model.parameters()).device
+                for key, t in batch.items():
+                    batch[key] = t.to(teacher_device)
+                batch['teacher_logits'] = teacher_model(**batch).logits
+
+            # move batch yet again
             for key, t in batch.items():
-                batch[key] = t.to(teacher_device)
-            batch['teacher_logits'] = teacher_model(**batch).logits
+                batch[key] = t.to(device)
+            
+            model.zero_grad()        
+            result = model(**batch)
 
-        # move batch yet again
-        for key, t in batch.items():
-            batch[key] = t.to(device)
-        
-        model.zero_grad()        
-        result = model(**batch)
+            loss = result.loss
+            total_train_loss += result.loss_float  # true loss is precomputed for honest comparison
 
-        loss = result.loss
-        total_train_loss += result.loss_float  # true loss is precomputed for honest comparison
+            # custom L2, as described in SemEval 2020 Amobee Systems paper
+            if model_initial is not None and L2_coef > 0:
+                L2_exp = 1.2  # another magic constant pls fix
+                for layer, layer_init in zip(model.bert.encoder.named_parameters(),  ## TODO works only with bert, XLM doesn't have an encoder
+                                            model_initial.bert.encoder.named_parameters()):
+                    encoder_layer_name = layer[0]
+                    encoder_layer_number = int(encoder_layer_name.split(".")[1])
+                    L2_delta = L2_coef * ((layer[1] - layer_init[1])**2).sum() / L2_exp ** (encoder_layer_number + 1)
+                    loss += L2_delta
 
-        # custom L2, as described in SemEval 2020 Amobee Systems paper
-        if model_initial is not None and L2_coef > 0:
-            L2_exp = 1.2  # another magic constant pls fix
-            for layer, layer_init in zip(model.bert.encoder.named_parameters(),  ## TODO works only with bert, XLM doesn't have an encoder
-                                        model_initial.bert.encoder.named_parameters()):
-                encoder_layer_name = layer[0]
-                encoder_layer_number = int(encoder_layer_name.split(".")[1])
-                L2_delta = L2_coef * ((layer[1] - layer_init[1])**2).sum() / L2_exp ** (encoder_layer_number + 1)
-                loss += L2_delta
+            loss.backward()
+            del loss
 
-        loss.backward()
-        del loss
+            if original_lens_batch is not None:
+                if 'labels' in batch:
+                    label_ids.extend(unpack([batch['labels']], [original_lens_batch]))
+                else:
+                    label_ids.extend(unpack([batch['teacher_logits'].max(-1).indices], [original_lens_batch]))
+                preds_ids.extend(unpack([result.logits.max(-1).indices],  [original_lens_batch]))
 
-        if original_lens_batch is not None:
-            if 'labels' in batch:
-                label_ids.extend(unpack([batch['labels']], [original_lens_batch]))
-            else:
-                label_ids.extend(unpack([batch['teacher_logits'].max(-1).indices], [original_lens_batch]))
-            preds_ids.extend(unpack([result.logits.max(-1).indices],  [original_lens_batch]))
+            del original_lens_batch
+            del result
 
-        del original_lens_batch
-        del result
+            optimizer.step()
+            prof.step()
 
-        optimizer.step()
-
-    avg_train_loss = total_train_loss / len(dataloader)            
-    training_time = format_time(time.time() - t0)
+        avg_train_loss = total_train_loss / len(dataloader)            
+        training_time = format_time(time.time() - t0)
 
 
-    if tensorboard_writer is not None:
-        tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
-        if compute_metrics is not None:
-            int2label = dataloader.dataset.int2label if int2label is None else int2label
-            metrics = compute_metrics(label_ids, preds_ids, int2label)
-            tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
+        if tensorboard_writer is not None:
+            tensorboard_writer.add_scalar('avg loss'+tb_postfix, avg_train_loss, cur_epoch)
+            if compute_metrics is not None:
+                int2label = dataloader.dataset.int2label if int2label is None else int2label
+                metrics = compute_metrics(label_ids, preds_ids, int2label)
+                tensorboard_writer.add_scalars("metrics"+tb_postfix, metrics, cur_epoch)
 
-    if print_progress:
-        print("")
-        print("  Average training loss: {0:.4f}".format(avg_train_loss))
-        print("  Training epoch took: {:}".format(training_time))
+        if print_progress:
+            print("")
+            print("  Average training loss: {0:.4f}".format(avg_train_loss))
+            print("  Training epoch took: {:}".format(training_time))
 
-    return avg_train_loss, training_time
+        return avg_train_loss, training_time
 
 
 def eval_model(model, dataloader, cur_epoch, device,
