@@ -4,11 +4,11 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.profiler import profile, record_function, ProfilerActivity
 from ADR_crosslingual.utils import format_time, unpack
 
-
+'''
 def trace_handler(p):
     output = p.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10)
     print(output)
-
+'''
 
 def train_model(model, dataloader, cur_epoch, device, optimizer,
           teacher_model=None, sampler=None,
@@ -33,7 +33,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
     preds_ids = []
 
 
-
+    '''
     with profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         profile_memory=True, record_shapes=True,
@@ -43,6 +43,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
             active=4),
         on_trace_ready=trace_handler
     ) as prof:
+    '''
 
         for step, batch in enumerate(dataloader, 1):
 
@@ -76,6 +77,11 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
             loss = result.loss
             total_train_loss += result.loss_float  # true loss is precomputed for honest comparison
 
+            if step % 20 == 0:
+                print("memory reserved/allocated (MB) before del:",
+                      torch.cuda.memory_reserved() // int(1e6),
+                      torch.cuda.memory_allocated() // int(1e6))
+
             # custom L2, as described in SemEval 2020 Amobee Systems paper
             if model_initial is not None and L2_coef > 0:
                 L2_exp = 1.2  # another magic constant pls fix
@@ -100,7 +106,14 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
             del result
 
             optimizer.step()
-            prof.step()
+
+            if step % 20 == 0:
+                print("memory reserved/allocated (MB) after del:",
+                  torch.cuda.memory_reserved() // int(1e6),
+                  torch.cuda.memory_allocated() // int(1e6))
+
+
+            #prof.step()
 
         avg_train_loss = total_train_loss / len(dataloader)            
         training_time = format_time(time.time() - t0)
