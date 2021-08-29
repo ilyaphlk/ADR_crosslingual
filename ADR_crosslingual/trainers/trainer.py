@@ -44,6 +44,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         on_trace_ready=trace_handler
     ) as prof:
     '''
+    counter = 1
 
     for step, batch in enumerate(dataloader, 1):
 
@@ -51,7 +52,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
             elapsed = format_time(time.time() - t0)
             print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(dataloader), elapsed))
 
-        del step
+        #del step
 
         device = next(model.parameters()).device
 
@@ -77,7 +78,7 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
         loss = result.loss
         total_train_loss += result.loss_float  # true loss is precomputed for honest comparison
 
-        if step % 20 == 0:
+        if counter % 20 == 0:
             print("memory reserved/allocated (MB) before del:",
                   torch.cuda.memory_reserved() // int(1e6),
                   torch.cuda.memory_allocated() // int(1e6))
@@ -107,12 +108,12 @@ def train_model(model, dataloader, cur_epoch, device, optimizer,
 
         optimizer.step()
 
-        if step % 20 == 0:
+        if counter % 20 == 0:
             print("memory reserved/allocated (MB) after del:",
               torch.cuda.memory_reserved() // int(1e6),
               torch.cuda.memory_allocated() // int(1e6))
 
-
+        counter += 1
         #prof.step()
 
     avg_train_loss = total_train_loss / len(dataloader)            
