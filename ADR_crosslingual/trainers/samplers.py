@@ -283,7 +283,7 @@ class VarianceSampler(BaseUncertaintySampler):
         self,
         strategy,
         n_samples_out,
-        n_forward_passes=5,
+        n_forward_passes=8,
         scoring_batch_sz=1,
         averaging_share=None,
         return_vars=False):
